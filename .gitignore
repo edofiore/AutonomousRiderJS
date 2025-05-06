@@ -8,7 +8,7 @@ node_modules/
 .vscode
 
 # Config file
-./config.js
+# ./config.js
 
 # dotenv local environment variables file
 .env.local

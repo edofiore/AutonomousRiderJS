@@ -2,6 +2,7 @@
   "name": "autonomousriderjs",
   "version": "1.0.0",
   "description": "Autonomous Software Agents (ASA) university project",
+  "type": "module",
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
@@ -13,11 +14,11 @@
   "keywords": [
     "AutonomousSoftwareAgent"
   ],
-  "author": "",
+  "author": "Edoardo Fiorentino, Leonardo Collizzolli",
   "license": "ISC",
   "dependencies": {
-    "@unitn-asa/deliveroo-js-client": "^0.0.37",
-    "@unitn-asa/pddl-client": "^0.0.29",
+    "@unitn-asa/deliveroo-js-client": "^2.0.2",
+    "@unitn-asa/pddl-client": "^0.0.37",
     "graphology": "^0.25.4",
     "graphology-shortest-path": "^2.1.0",
     "node-fetch": "^3.3.0",
