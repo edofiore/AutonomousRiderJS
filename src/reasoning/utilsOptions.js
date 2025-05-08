@@ -8,11 +8,15 @@ export function optionsGeneration() {
      * Options generation
      */
     const options = [];
+    console.log("STORED PARCELS", storedParcels)
+
     for (const parcel of storedParcels.values()) {
         if (!parcel.carriedBy) {
             options.push(['go_pick_up', parcel.x, parcel.y, parcel.id]);
         } 
     }
+
+    console.log("OPTIONS", options)
 
     /**
      * Options filtering
@@ -52,6 +56,7 @@ export function optionsGeneration() {
      * Best option is selected
      */
     if (best_option) {
+        console.log("BEST OPTION",best_option)
         newAgent.push(best_option);
     }
 }

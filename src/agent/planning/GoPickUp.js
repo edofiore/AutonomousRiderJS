@@ -7,6 +7,7 @@ export class GoPickUp extends Plan {
     }
 
     async execute (go_pick_up, x, y) {
+        console.log("Executing go_pick_up...")
         if (this.stopped) throw ['stopped']; // if stopped then quit
         await this.subIntention( ['go_to', x, y]);
         if (this.stopped) throw ['stopped']; // if stopped then quit

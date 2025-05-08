@@ -23,21 +23,24 @@ export function processMapData(width, height, data) {
     console.log(data)
     let nodeId = new String;
     for(let tile of data){
-        nodeId = tile.x + "-" + tile.y;
-        mapGraph.addNode(nodeId, { x:tile.x, y:tile.y, type:tile.type});
-        if(tile.x < mapWidth/2){
-            if(Math.abs(center.x - Math.floor(mapWidth/2)) > Math.abs(tile.x - Math.floor(mapWidth/2)) && Math.abs(center.y - Math.floor(mapHeight/2)) > Math.abs(tile.y - Math.floor(mapHeight/2))){
-                center.x = Math.floor(tile.x);
-                center.y = Math.floor(tile.y);
-            }
-        }
-        mapGraph.forEachNode((node, attributes) => {
-            if(node != nodeId){
-                if((attributes.x == tile.x && (attributes.y == tile.y+1 || attributes.y == tile.y-1)) || (attributes.y == tile.y && (attributes.x == tile.x+1 || attributes.x == tile.x-1))){
-                    mapGraph.addUndirectedEdge(nodeId,node);
+        if(tile.type != BLOCKED_TILES) {
+
+            nodeId = tile.x + "-" + tile.y;
+            mapGraph.addNode(nodeId, { x:tile.x, y:tile.y, type:tile.type});
+            if(tile.x < mapWidth/2){
+                if(Math.abs(center.x - Math.floor(mapWidth/2)) > Math.abs(tile.x - Math.floor(mapWidth/2)) && Math.abs(center.y - Math.floor(mapHeight/2)) > Math.abs(tile.y - Math.floor(mapHeight/2))){
+                    center.x = Math.floor(tile.x);
+                    center.y = Math.floor(tile.y);
                 }
             }
-        });
+            mapGraph.forEachNode((node, attributes) => {
+                if(node != nodeId){
+                    if((attributes.x == tile.x && (attributes.y == tile.y+1 || attributes.y == tile.y-1)) || (attributes.y == tile.y && (attributes.x == tile.x+1 || attributes.x == tile.x-1))){
+                        mapGraph.addUndirectedEdge(nodeId,node);
+                    }
+                }
+            });
+        }
     }
     console.log("MAPGRAPH", mapGraph);
     // TODO: check buffer and what is saves
@@ -50,7 +53,8 @@ export function processMapData(width, height, data) {
     /**
      * Definition delivery spots and parcels spawner tiles
      */
-    mapGraph.filterNodes((node, attributes) => {
+
+    mapGraph.forEachNode((node, attributes) => {
         // console.log("NODE", node);
         console.log("ATTRIBUTES", attributes)
         if(attributes.type == DELIVERABLE_TILES)
@@ -58,6 +62,7 @@ export function processMapData(width, height, data) {
         else if(attributes.type == WALKABLE_SPAWNING_TILES)
             parcelSpawners.push(node.split("-"));
     })
+    
     // const buffer = [];
     // mapGraph.filterNodes((node, attributes) => {
     //     // console.log("NODE", node);
