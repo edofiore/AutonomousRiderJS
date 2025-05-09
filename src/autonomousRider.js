@@ -1,4 +1,4 @@
-import { Agent, processMapData, updateInfoAgent, updateParcelsPerceived } from "./agent/index.js";
+import { Agent, processMapData, updateCarryingParcels, updateInfoAgent, updateParcelsPerceived } from "./agent/index.js";
 import { client } from "./config/index.js";
 import { optionsGeneration } from "./reasoning/utilsOptions.js";
     
@@ -12,7 +12,10 @@ const newAgent = new Agent();
  */
 client.onMap((width, height, data) => processMapData(width, height, data))
 client.onYou(( {id, name, x, y, score} ) => updateInfoAgent({id, name, x, y, score}))
-client.onParcelsSensing(async (parcels) => await updateParcelsPerceived(parcels))
+client.onParcelsSensing(async (parcels) => {
+    await updateParcelsPerceived(parcels);
+    await updateCarryingParcels(parcels);
+})
 
 /**
  * Generate options at every sensing event

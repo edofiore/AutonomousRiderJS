@@ -36,21 +36,25 @@ export function optionsGeneration() {
         }
     }
 
-    // let nearestDeliver = Number.MAX_VALUE;
-    // let best_spot = [];
-    // for (const deliverySpot of deliverySpots) {
-    //     let current_d = distance( {x:parseInt(deliverySpot[0]), y:parseInt(deliverySpot[1])}, me )
-    //     if ( current_d < nearestDeliver ) {
-    //         best_spot = deliverySpot;
-    //         nearestDeliver = current_d
-    //     }
-    // }
+    /**
+     * Find the nearest delivery zone
+     */
+    let nearestDeliver = Number.MAX_VALUE;
+    let best_spot = [];
+    for (const deliverySpot of deliverySpots) {
+        let current_d = distance( {x:parseInt(deliverySpot[0]), y:parseInt(deliverySpot[1])}, me )
+        if ( current_d < nearestDeliver ) {
+            best_spot = deliverySpot;
+            nearestDeliver = current_d
+        }
+    }
 
     // if(best_option && me.parcelsImCarrying > 0){
-    //     if(distance({x:best_spot[0],y:best_spot[1]}, me) < 3){
-    //         best_option = ['go_deliver', best_spot[0], best_spot[1]];
-    //     }
-    // }
+    if(options.length == 0 && me.parcelsImCarrying > 0){
+        // if(distance({x:best_spot[0],y:best_spot[1]}, me) <= 3){
+        best_option = ['go_deliver', best_spot[0], best_spot[1]];
+        // }
+    }
 
     /**
      * Best option is selected

@@ -19,6 +19,22 @@ function updateInfoAgent({id, name, x, y, score}) {
     console.log("Info updated")
 }
 
+/**
+ * 
+ * @param {*} perceivedParcels 
+ */
+async function updateCarryingParcels(perceivedParcels) {
+
+    let count = 0;
+    perceivedParcels.map(parcel => {
+        if(parcel.carriedBy == me.id)
+            count += 1
+    })
+
+    if (count != me.parcelsImCarrying)
+        me.parcelsImCarrying = count
+}
+
 // client.onYou( ( {id, name, x, y, score} ) => {
 //     me.id = id
 //     me.name = name
@@ -27,4 +43,4 @@ function updateInfoAgent({id, name, x, y, score}) {
 //     me.score = score
 // } )
 
-export {me, updateInfoAgent};
+export {me, updateInfoAgent, updateCarryingParcels};
