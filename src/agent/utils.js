@@ -7,7 +7,7 @@ export function distance( {x:x1, y:y1}, {x:x2, y:y2} ) {
     
     if(x1 != undefined && y1 != undefined && x2 != undefined && y2 != undefined) {
         let path = dijkstra.bidirectional(mapGraph, Math.floor(x1) + "-" + Math.floor(y1), Math.floor(x2) + "-" + Math.floor(y2))
-        console.log("PATHHHHHH", path)
+        // console.log("PATHHHHHH", path)
     
         if(!path){
             if(mapGraph.hasNode(Math.floor(x1) + "-" + Math.floor(y1)) && mapGraph.hasNode(Math.floor(x2) + "-" + Math.floor(y2))){

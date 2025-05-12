@@ -1,14 +1,11 @@
 import { IntentionRevisionQueue, IntentionRevisionReplace, IntentionRevisionRevise } from "./index.js";
 
 class Agent {
-    /**
-     * TODO: Incorporate the intention_revision behavior, choosing one push() 
-    */
 
     constructor () {
         // this.intentionRevision = new IntentionRevisionQueue();
-        this.intentionRevision = new IntentionRevisionReplace();
-        // this.intentionRevision = new IntentionRevisionRevise();
+        // this.intentionRevision = new IntentionRevisionReplace();
+        this.intentionRevision = new IntentionRevisionRevise();
     }
 
     async start () {
