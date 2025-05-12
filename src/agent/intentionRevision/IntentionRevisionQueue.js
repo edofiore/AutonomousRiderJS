@@ -7,7 +7,7 @@ class IntentionRevisionQueue extends IntentionRevision {
         if ( this.intention_queue.find( (i) => i.predicate.join(' ') == predicate.join(' ') ) )
             return; // intention is already queued
 
-        console.log("IntentionRevisionReplace.push", predicate);
+        console.log("IntentionRevisionQueue.push", predicate);
         const intention = new Intention(this, predicate)
         this.intention_queue.push(intention);
     }

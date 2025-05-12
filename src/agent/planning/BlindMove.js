@@ -18,11 +18,11 @@ export class BlindMove extends Plan {
             let myPos = Math.floor(me.x) + "-" + Math.floor(me.y);
             let dest = Math.floor(x) + "-" + Math.floor(y);
 
-            console.log("MYPOS", myPos)
-            console.log("DESTINATION", dest)
+            // console.log("MYPOS", myPos)
+            // console.log("DESTINATION", dest)
             
             path = dijkstra.bidirectional(mapGraph, myPos, dest);
-            console.log("PATH", path)
+            // console.log("PATH", path)
 
             path.shift();
             let nextCoordinates;
@@ -32,7 +32,7 @@ export class BlindMove extends Plan {
             for(let nextDest of path){
                 // console.log('MUOVO: ', nextDest);
                 nextCoordinates = nextDest.split("-");
-                console.log("GO TO", nextCoordinates)
+                // console.log("GO TO", nextCoordinates)
                 
                 // TODO deliver if on a delivery spot
 
