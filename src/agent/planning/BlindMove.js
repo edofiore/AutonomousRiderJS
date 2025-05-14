@@ -1,7 +1,7 @@
 import { Plan } from "./index.js";
 import dijkstra from 'graphology-shortest-path';
 import { client } from "../../config/index.js";
-import { me, mapGraph } from "../belief/index.js";
+import { me, mapGraph, deliverySpots } from "../belief/index.js";
 
 export let path = [];
 export class BlindMove extends Plan {
@@ -30,9 +30,7 @@ export class BlindMove extends Plan {
             if (this.stopped) throw ['stopped']; // if stopped then quit
 
             for(let nextDest of path){
-                // console.log('MUOVO: ', nextDest);
                 nextCoordinates = nextDest.split("-");
-                // console.log("GO TO", nextCoordinates)
                 
                 // TODO deliver if on a delivery spot
 
