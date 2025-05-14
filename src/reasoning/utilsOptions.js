@@ -11,7 +11,7 @@ function optionsGeneration() {
     console.log("STORED PARCELS", storedParcels)
 
     for (const parcel of storedParcels.values()) {
-        if (!parcel.carriedBy) {
+        if (!parcel.carriedBy) {    // TODO: Check if this is necessary, at the moment we store only free parcels
             options.push(['go_pick_up', parcel.x, parcel.y, parcel.id]);
         } 
     }
@@ -20,6 +20,7 @@ function optionsGeneration() {
      * Find the nearest delivery zone
      */
     // This means no parcel are perceived
+    // if (storedParcels.length == 0 ) {
     if (options.length == 0 ) {
         // If the agent are bringing some parcels go to deliver
         if(me.parcelsImCarrying > 0) {

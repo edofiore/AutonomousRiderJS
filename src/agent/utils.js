@@ -33,6 +33,10 @@ const distance = ( current_pos, target_pos ) => {
  * @param {{x:number, y:number}} target_pos_2 - Final target position 
  * @returns {number} - The effective reward to pick up the parcel
  */
+/**
+ * TODO: 
+ * FinalReward = Reward - [(movement_speed/parcel_decading_interval) * ((distance_agent_to_parcel + distance_parcel_to_delivery)/movement_steps)]
+ */
 const realPickupReward = (reward, current_pos, target_pos_1, target_pos_2) => {
     const distance_1 = distance(current_pos, target_pos_1);
     const distance_2 = distance(target_pos_1, target_pos_2);

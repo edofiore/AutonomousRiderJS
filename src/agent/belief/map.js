@@ -9,18 +9,18 @@ const WALKABLE_TILES = 3;   // '3' are walkable non-spawning tiles
 let mapWidth;
 let mapHeight;
 let center = { x:Number.MAX_VALUE, y:Number.MAX_VALUE};
-export let deliverySpots = [];
-export let parcelSpawners = [];
-export const mapGraph = new UndirectedGraph();
-let newParcels = true;
-let carrying = false;
+let deliverySpots = [];
+let parcelSpawners = [];
+const mapGraph = new UndirectedGraph();
+// let newParcels = true;
+// let carrying = false;
 
-export function processMapData(width, height, data) {
+const processMapData = (width, height, data) => {
     mapWidth = width;
     mapHeight = height;
-    console.log(mapWidth)
-    console.log(mapHeight)
-    console.log(data)
+    // console.log(mapWidth)
+    // console.log(mapHeight)
+    // console.log(data)
     let nodeId = new String;
     for(let tile of data){
         nodeId = tile.x + "-" + tile.y;
@@ -131,3 +131,5 @@ export function processMapData(width, height, data) {
 
 //     console.log(center);
 // })
+
+export { mapGraph, deliverySpots, parcelSpawners, processMapData };
