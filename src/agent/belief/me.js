@@ -5,7 +5,7 @@ import { client } from "../../config/index.js";
  */
 const me = {id: null, name: null, x: null, y: null, score: null, parcelsImCarrying: null};
 
-function updateInfoAgent({id, name, x, y, score}) {
+const updateInfoAgent = ({id, name, x, y, score}) => {
 
     console.log("Updating info about me (\%s)...", name)
 
@@ -23,7 +23,7 @@ function updateInfoAgent({id, name, x, y, score}) {
  * 
  * @param {*} perceivedParcels 
  */
-async function updateCarryingParcels(perceivedParcels) {
+const updateCarryingParcels = async (perceivedParcels) => {
 
     let count = 0;
     perceivedParcels.map(parcel => {
