@@ -1,5 +1,5 @@
 import dijkstra from 'graphology-shortest-path';
-import { mapGraph, deliverySpots, parcelSpawners } from './belief/index.js';
+import { mapGraph, deliverySpots, parcelSpawners, storedParcels, MOVEMENT_DURATION, MOVEMENT_STEPS, PDI } from './belief/index.js';
 
 /**
  * Function to compute the distance (number of cells/steps) between 2 cells
@@ -35,13 +35,18 @@ const distance = ( current_pos, target_pos ) => {
  */
 /**
  * TODO: 
- * FinalReward = Reward - [(movement_speed/parcel_decading_interval) * ((distance_agent_to_parcel + distance_parcel_to_delivery)/movement_steps)]
+ * FinalReward = Reward - [(movement_duration/parcel_decading_interval) * ((distance_agent_to_parcel + distance_parcel_to_delivery)/movement_steps)]
  */
-const realPickupReward = (reward, current_pos, target_pos_1, target_pos_2) => {
+const realPickupReward = (reward, current_pos, target_pos_1, target_pos_2, movement_duration, movement_steps, parcel_decading_interval) => {
     const distance_1 = distance(current_pos, target_pos_1);
     const distance_2 = distance(target_pos_1, target_pos_2);
+    const ratio_time = movement_duration/(parcel_decading_interval*1000); // ms
+    const effective_distance = (distance_1 + distance_2) / movement_steps;
+    const final_reward = reward - (ratio_time * effective_distance);
 
-    return reward - distance_1 - distance_2
+    console.log("FINAL REWARD", final_reward)
+
+    return final_reward
 }
 
 /**
@@ -91,17 +96,34 @@ const findFarthestParcelSpawner = (agent) => {
  */
 const findBestOption = (options, agent) => {
     let best_option;
-    let nearest = Number.MAX_VALUE;
+    // let nearest = Number.MAX_VALUE;
+
+    let biggest_reward = Number.MIN_VALUE;
+
     for (const option of options) {
         if(option[0] == 'go_pick_up') {
-            const [, x, y] = option;
-            console.log("me", agent)
-            const current_d = distance({x, y}, agent);
-            console.log("DISTANCE", current_d)
-            if (current_d < nearest) {
+            const [, x, y, p_id] = option;
+            // console.log("me", agent)
+            // const current_d = distance({x, y}, agent);
+            // console.log("DISTANCE", current_d)
+            // if (current_d < nearest) {
+            //     best_option = option;
+            //     nearest = current_d;
+            // }
+
+            const parcel = storedParcels.get(p_id);
+            const nearest_delivery = findNearestDeliverySpot({x, y});
+            const final_reward = realPickupReward(
+                parcel.reward, agent, {x, y}, {x:parseInt(nearest_delivery[0]), 
+                y:parseInt(nearest_delivery[1])}, MOVEMENT_DURATION, MOVEMENT_STEPS, parseInt(PDI)
+            );
+            console.log("final_reward")
+            
+            if (final_reward > biggest_reward) {
                 best_option = option;
-                nearest = current_d;
+                biggest_reward = final_reward;
             }
+
         } else if (option[0] == 'go_deliver') {
             best_option = option;
         } else if (option[0] == 'go_to') {
