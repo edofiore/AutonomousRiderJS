@@ -5,6 +5,9 @@ const WALKABLE_SPAWNING_TILES = 1;  // '1' are walkable spawning tiles
 const DELIVERABLE_TILES = 2;    // '2' are delivery tiles
 const WALKABLE_TILES = 3;   // '3' are walkable non-spawning tiles
 
+/**
+ * TODO: do a Belief class? Having a Belief class we could store in belief.map, belief.parcels, belief.me, belief.me.score, ...
+ */
 
 let mapWidth;
 let mapHeight;
@@ -14,6 +17,19 @@ let parcelSpawners = [];
 const mapGraph = new UndirectedGraph();
 // let newParcels = true;
 // let carrying = false;
+
+/**
+ * Config map variables
+ */
+let MOVEMENT_DURATION = 0;
+let MOVEMENT_STEPS = 0;
+let PDI = "";    // PARCEL DECADING INTERVAL
+let AOD = 0;    // AGENTS OBSERVATION DISTANCE
+let POD = 0;    // PARCELS OBSERVATION DISTANCE
+let PGI = "";   // PARCELS GENERATION INTERVAL
+let PRA = 0;    // PARCEL REWARD AVG
+let PRV = 0;    // PARCEL REWARD VARIANCE
+let PARCELS_MAX = 0;
 
 const processMapData = (width, height, data) => {
     mapWidth = width;
@@ -91,6 +107,23 @@ const processMapData = (width, height, data) => {
     console.log("Parcel spawners -->", parcelSpawners );
 }
 
+/**
+ * Get the config of the map
+ * @param {*} config 
+ */
+const getMapConfig = (config) => {
+    MOVEMENT_DURATION = config.MOVEMENT_DURATION;
+    MOVEMENT_STEPS = config.MOVEMENT_STEPS;
+    PDI = config.PARCEL_DECADING_INTERVAL;
+    AOD = config.AGENTS_OBSERVATION_DISTANCE;
+    POD = config.PARCELS_OBSERVATION_DISTANCE;
+    PGI = config.PARCELS_GENERATION_INTERVAL;
+    PRA = config.PARCEL_REWARD_AVG;
+    PRV = config.PARCEL_REWARD_VARIANCE;
+    PARCELS_MAX = config.PARCELS_MAX;
+
+    console.log(MOVEMENT_DURATION, MOVEMENT_STEPS, PDI, AOD, POD, PGI, PRA, PRV, PARCELS_MAX)
+}
 // client.onMap( ( width, height, data ) => {
 //     mapWidth = width;
 //     mapHeight = height;
@@ -132,4 +165,4 @@ const processMapData = (width, height, data) => {
 //     console.log(center);
 // })
 
-export { mapGraph, deliverySpots, parcelSpawners, processMapData };
+export { mapGraph, deliverySpots, parcelSpawners, MOVEMENT_DURATION, MOVEMENT_STEPS, AOD, PDI, PGI, POD, PRA, PRV, PARCELS_MAX, processMapData, getMapConfig };
