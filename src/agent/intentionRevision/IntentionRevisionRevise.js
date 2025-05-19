@@ -1,5 +1,5 @@
 import { IntentionRevision } from "./index.js"
-import { GO_DELIVER, GO_PICK_UP, GO_TO, Intention, MOVEMENT_DURATION, MOVEMENT_STEPS, PDI, getFinalReward, me, storedParcels } from "../index.js";
+import { GO_DELIVER, GO_PICK_UP, GO_TO, Intention, MOVEMENT_DURATION, MOVEMENT_STEPS, PDI, getFinalReward, me, storedParcels, swapIntentions } from "../index.js";
 
 
 class IntentionRevisionRevise extends IntentionRevision {
@@ -23,6 +23,12 @@ class IntentionRevisionRevise extends IntentionRevision {
         const intention = new Intention( this, predicate );
         // this.intention_queue.push( intention );
 
+        /**
+         * TODO: 
+         * - if the agent is going to pick up a specific parcel, but along his path there is another pack, he must pick up that package;
+         * - the same in the case he's bringing packages and along the path pass over a delivery spot, he must deliver the packages he has
+         */
+
         if(this.intention_queue[0]){
             // console.log("INTENTIONNNNNN", this.intention_queue[0].predicate)
             if(this.intention_queue[0].predicate[0] == GO_TO && intention.predicate[0] == GO_PICK_UP) {
@@ -41,18 +47,22 @@ class IntentionRevisionRevise extends IntentionRevision {
                      * TODO: put this in a function
                      */
                     
-                    const delivery_pos = {x: this.intention_queue[0].predicate[1], y: this.intention_queue[0].predicate[2]}
-                    const parcel_pos = {x: intention.predicate[1], y: intention.predicate[2]}
-                    const reward_parcel = storedParcels.get(intention.predicate[3]).reward
+                    // const delivery_pos = {x: this.intention_queue[0].predicate[1], y: this.intention_queue[0].predicate[2]}
+                    // const parcel_pos = {x: intention.predicate[1], y: intention.predicate[2]}
+                    // const reward_parcel = storedParcels.get(intention.predicate[3]).reward
 
-                    // TODO: change getFinalReward since I already have the position of the delivery spot
-                    const deliver_final_reward = getFinalReward(this.intention_queue[0].predicate[0], me.carriedReward, MOVEMENT_DURATION, MOVEMENT_STEPS, PDI, me, delivery_pos);
-                    const pickup_final_reward = getFinalReward(intention.predicate[0], me.carriedReward, MOVEMENT_DURATION, MOVEMENT_STEPS, PDI, me, parcel_pos, reward_parcel);
+                    // // TODO: change getFinalReward since I already have the position of the delivery spot
+                    // const deliver_final_reward = getFinalReward(this.intention_queue[0].predicate[0], me.carriedReward, MOVEMENT_DURATION, MOVEMENT_STEPS, PDI, me, delivery_pos);
+                    // const pickup_final_reward = getFinalReward(intention.predicate[0], me.carriedReward, MOVEMENT_DURATION, MOVEMENT_STEPS, PDI, me, parcel_pos, reward_parcel);
 
-                    console.log("FINAL REWARD", deliver_final_reward, pickup_final_reward);
+                    // console.log("FINAL REWARD", deliver_final_reward, pickup_final_reward);
 
+                    /**
+                     * TODO: Decide if to swap 2 intentions or simply stop the first one  
+                     */
+                    const swap = swapIntentions(this.intention_queue[0], intention, me, MOVEMENT_DURATION, MOVEMENT_STEPS, PDI, storedParcels)
 
-                    if(pickup_final_reward > deliver_final_reward) {
+                    if(swap) {
                         console.log("Stopping...");
                         this.intention_queue[0].stop();
                     }

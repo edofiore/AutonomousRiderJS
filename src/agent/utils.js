@@ -236,4 +236,53 @@ const findBestOption = (options, parcels, agent) => {
     return best_option
 }
 
-export { GO_TO, GO_PICK_UP, GO_DELIVER, distance, computeFinalReward, getPickupFinalReward, getDeliverFinalReward, getFinalReward, findNearestDeliverySpot, findFarthestParcelSpawner, findBestOption };
+/**
+ * Compare two intentions to decide if swap them
+ * @param {*} intention_1 
+ * @param {*} intention_2 
+ * @param {*} agent 
+ * @param {*} movement_duration 
+ * @param {*} movement_steps 
+ * @param {*} parcel_decading_interval 
+ * @param {Map< string, {id: string, carriedBy?: string, x:number, y:number, reward:number} >} parcels 
+ * @returns 
+ */
+const swapIntentions = (intention_1, intention_2, agent, movement_duration, movement_steps, parcel_decading_interval, parcels = null) => {
+    const agent_pos = {x: agent.x, y: agent.y}
+    let target_pos_1;
+    // let parcel_pos_1;
+    let reward_parcel_1;
+    let target_pos_2;
+    // let parcel_pos_2;
+    let reward_parcel_2;
+    
+    // If the first intention is "go_deliver"
+    if(intention_1.predicate[0] == GO_DELIVER) {
+        target_pos_1 = {x: intention_1.predicate[1], y: intention_1.predicate[2]}
+    // else if it is "go_pick_up"
+    } else if(intention_1.predicate[0] == GO_PICK_UP) {
+        target_pos_1 = {x: intention_1.predicate[1], y: intention_1.predicate[2]}
+        reward_parcel_1 = parcels.get(intention_1.predicate[3]).reward ?? 0
+    }
+
+    // If the second intention is "go_deliver"
+    if(intention_2.predicate[0] == GO_DELIVER) {
+        target_pos_2 = {x: intention_2.predicate[1], y: intention_2.predicate[2]}
+        reward_parcel_2 = parcels.get(intention_2.predicate[3]).reward ?? 0
+    // else if it is "go_pick_up"
+    } else if(intention_2.predicate[0] == GO_PICK_UP) {
+        target_pos_2 = {x: intention_2.predicate[1], y: intention_2.predicate[2]}
+    }
+
+    // Get the final rewards for the two intentions
+    const intention_1_final_reward = getFinalReward(intention_1.predicate[0], agent.carriedReward, movement_duration, 
+        movement_steps, parcel_decading_interval, agent_pos, target_pos_1, reward_parcel_1);
+    const intention_2_final_reward = getFinalReward(intention_2.predicate[0], agent.carriedReward, movement_duration, 
+        movement_steps, parcel_decading_interval, agent_pos, target_pos_2, reward_parcel_2);
+
+    // Return TRUE if the second reward is bigger, otherwise FALSE
+    return (intention_2_final_reward > intention_1_final_reward)
+}
+
+export { GO_TO, GO_PICK_UP, GO_DELIVER, distance, computeFinalReward, getPickupFinalReward, getDeliverFinalReward, getFinalReward, 
+    findNearestDeliverySpot, findFarthestParcelSpawner, findBestOption, swapIntentions };
