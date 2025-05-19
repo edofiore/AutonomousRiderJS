@@ -1,4 +1,4 @@
-import {storedParcels, me, distance, deliverySpots, parcelSpawners, findNearestDeliverySpot, findFarthestParcelSpawner, findBestOption } from "../agent/index.js"
+import {storedParcels, me, findNearestDeliverySpot, findFarthestParcelSpawner, findBestOption, GO_TO, GO_DELIVER, GO_PICK_UP } from "../agent/index.js"
 import { newAgent } from "../autonomousRider.js";
 
 
@@ -12,7 +12,7 @@ function optionsGeneration() {
 
     for (const parcel of storedParcels.values()) {
         if (!parcel.carriedBy) {    // TODO: Check if this is necessary, at the moment we store only free parcels
-            options.push(['go_pick_up', parcel.x, parcel.y, parcel.id]);
+            options.push([GO_PICK_UP, parcel.x, parcel.y, parcel.id]);
         } 
     }
 
@@ -23,15 +23,18 @@ function optionsGeneration() {
     // if (storedParcels.length == 0 ) {
     if (options.length == 0 ) {
         // If the agent are bringing some parcels go to deliver
+        /**
+         * TODO: dovrei calcolare il reward finale? Magari andare a deliverare solo se il final reward fosse > 0? 
+         */
         if(me.parcelsImCarrying > 0) {
             const best_spot = findNearestDeliverySpot(me);
 
-            options.push(['go_deliver', best_spot[0], best_spot[1]]);
+            options.push([GO_DELIVER, best_spot[0], best_spot[1]]);
 
-        // Otherwise move the agents to looking for parcels
+        // Otherwise move the agents away to looking for parcels
         } else {
             const best_spot = findFarthestParcelSpawner(me);
-            options.push(['go_to', best_spot[0], best_spot[1]]);
+            options.push([GO_TO, best_spot[0], best_spot[1]]);
         }
     }
 
@@ -40,7 +43,7 @@ function optionsGeneration() {
     /**
      * Options filtering
      */
-    const best_option = findBestOption(options, me);
+    const best_option = findBestOption(options, storedParcels, me);
 
     /**
      * Find the nearest delivery zone

@@ -1,5 +1,5 @@
-import {IntentionRevision} from "./index.js"
-import { Intention } from "../index.js";
+import { IntentionRevision } from "./index.js"
+import { GO_DELIVER, GO_PICK_UP, GO_TO, Intention, MOVEMENT_DURATION, MOVEMENT_STEPS, PDI, getFinalReward, me, storedParcels, swapIntentions } from "../index.js";
 
 
 class IntentionRevisionRevise extends IntentionRevision {
@@ -22,16 +22,70 @@ class IntentionRevisionRevise extends IntentionRevision {
         
         const intention = new Intention( this, predicate );
         // this.intention_queue.push( intention );
+
+        /**
+         * TODO: 
+         * - if the agent is going to pick up a specific parcel, but along his path there is another pack, he must pick up that package;
+         * - the same in the case he's bringing packages and along the path pass over a delivery spot, he must deliver the packages he has
+         */
+
         if(this.intention_queue[0]){
             // console.log("INTENTIONNNNNN", this.intention_queue[0].predicate)
-            if(this.intention_queue[0].predicate[0] == "go_to" && intention.predicate[0] != "go_to") {
+            if(this.intention_queue[0].predicate[0] == GO_TO && intention.predicate[0] == GO_PICK_UP) {
                 this.intention_queue[1] = intention;
-                console.log("Stopping...")
+                console.log("Stopping...");
                 this.intention_queue[0].stop();
+            } else if (this.intention_queue[0].predicate[0] == GO_DELIVER) {
+                this.intention_queue[1] = intention;
+
+                /**
+                 * Compare intention and re-order
+                 */
+                if(intention.predicate[0] == GO_PICK_UP) {
+
+                    /**
+                     * TODO: put this in a function
+                     */
+                    
+                    // const delivery_pos = {x: this.intention_queue[0].predicate[1], y: this.intention_queue[0].predicate[2]}
+                    // const parcel_pos = {x: intention.predicate[1], y: intention.predicate[2]}
+                    // const reward_parcel = storedParcels.get(intention.predicate[3]).reward
+
+                    // // TODO: change getFinalReward since I already have the position of the delivery spot
+                    // const deliver_final_reward = getFinalReward(this.intention_queue[0].predicate[0], me.carriedReward, MOVEMENT_DURATION, MOVEMENT_STEPS, PDI, me, delivery_pos);
+                    // const pickup_final_reward = getFinalReward(intention.predicate[0], me.carriedReward, MOVEMENT_DURATION, MOVEMENT_STEPS, PDI, me, parcel_pos, reward_parcel);
+
+                    // console.log("FINAL REWARD", deliver_final_reward, pickup_final_reward);
+
+                    /**
+                     * TODO: Decide if to swap 2 intentions or simply stop the first one  
+                     */
+                    const swap = swapIntentions(this.intention_queue[0], intention, me, MOVEMENT_DURATION, MOVEMENT_STEPS, PDI, storedParcels)
+
+                    if(swap) {
+                        console.log("Stopping...");
+                        this.intention_queue[0].stop();
+                    }
+                    
+                    // const best_option = findBestOption(this.intention_queue, me);
+                    // if(best_option != this.intention_queue[0]) {
+                    //     const tmp = this.intention_queue[0];
+                    //     this.intention_queue[0].stop();
+                    //     this.intention_queue[1] = tmp;
+                    // }
+                }
+            } else if (this.intention_queue[0].predicate[0] == GO_PICK_UP && intention.predicate[0] != GO_TO) {
+                /**
+                 * TODO: compare to see the best pickup intention. If it is needed to stop and go for another pickup
+                 */
+
+                this.intention_queue[1] = intention;
             }
         }else{
             this.intention_queue[0] = intention;
         }
+
+        
         console.log("QUEUE:", this.intention_queue);
     }
 }
