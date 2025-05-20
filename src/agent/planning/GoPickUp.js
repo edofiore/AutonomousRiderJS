@@ -1,9 +1,10 @@
 import { Plan } from "./index.js";
 import { client } from "../../config/index.js";
+import { GO_PICK_UP } from "../utils.js";
 
 export class GoPickUp extends Plan {
     static isApplicableTo (go_pick_up, x, y, id) {
-        return go_pick_up == 'go_pick_up';
+        return go_pick_up == GO_PICK_UP;
     }
 
     async execute (go_pick_up, x, y) {
