@@ -1,4 +1,4 @@
-import { Beliefs } from "./index.js"
+import { beliefs } from "./index.js"
 
 /**
  * @type { {id:string, name:string, x:number, y:number, score:number, parcelsImCarrying:number, carriedReward:number} }
@@ -21,13 +21,13 @@ const updateInfoAgent = ({id, name, x, y, score}) => {
 
     console.log("Updating info about me (\%s)...", name)
 
-    Beliefs.me.id = id
-    Beliefs.me.name = name
-    Beliefs.me.x = x
-    Beliefs.me.y = y
-    Beliefs.me.score = score
+    beliefs.me.id = id
+    beliefs.me.name = name
+    beliefs.me.x = x
+    beliefs.me.y = y
+    beliefs.me.score = score
 
-    console.log("ME", Beliefs.me)
+    console.log("ME", beliefs.me)
     console.log("Info updated")
 }
 
@@ -40,17 +40,17 @@ const updateCarryingParcels = async (perceivedParcels) => {
     let count = 0;
     let total_reward = 0;
     perceivedParcels.map(parcel => {
-        if(parcel.carriedBy == Beliefs.me.id) {
+        if(parcel.carriedBy == beliefs.me.id) {
             count += 1;
             total_reward += parcel.reward;
         }
     })
 
-    if (count != Beliefs.me.parcelsImCarrying)
-        Beliefs.me.parcelsImCarrying = count;
+    if (count != beliefs.me.parcelsImCarrying)
+        beliefs.me.parcelsImCarrying = count;
 
-    if (total_reward != Beliefs.me.carriedReward)
-        Beliefs.me.carriedReward = total_reward;
+    if (total_reward != beliefs.me.carriedReward)
+        beliefs.me.carriedReward = total_reward;
 }
 
 export { updateInfoAgent, updateCarryingParcels };

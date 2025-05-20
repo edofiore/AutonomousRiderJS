@@ -46,4 +46,4 @@ const constantBeliefs = {
     }
 }
 
-export { beliefs as Beliefs, constantBeliefs }
+export { beliefs, constantBeliefs }

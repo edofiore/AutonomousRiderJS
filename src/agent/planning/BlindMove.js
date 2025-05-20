@@ -1,7 +1,7 @@
 import { Plan } from "./index.js";
 import dijkstra from 'graphology-shortest-path';
 import { client } from "../../config/index.js";
-import { Beliefs, constantBeliefs, GO_TO } from "../index.js";
+import { beliefs, constantBeliefs, GO_TO } from "../index.js";
 
 
 export let path = [];
@@ -16,13 +16,13 @@ export class BlindMove extends Plan {
 
         // const me = beliefs.me;
 
-        if ( Beliefs.me.x != x || Beliefs.me.y != y ) {
+        if ( beliefs.me.x != x || beliefs.me.y != y ) {
 
             // console.log("CIAOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOO")
 
             if (this.stopped) throw ['stopped']; // if stopped then quit
 
-            let myPos = Math.floor(Beliefs.me.x) + "-" + Math.floor(Beliefs.me.y);
+            let myPos = Math.floor(beliefs.me.x) + "-" + Math.floor(beliefs.me.y);
             let dest = Math.floor(x) + "-" + Math.floor(y);
 
             // console.log("MYPOS", myPos)
@@ -41,13 +41,13 @@ export class BlindMove extends Plan {
                 
                 // TODO deliver if on a delivery spot
 
-                if( nextCoordinates[0] > Beliefs.me.x){
+                if( nextCoordinates[0] > beliefs.me.x){
                     await client.emitMove('right');
-                }else if(nextCoordinates[0] < Beliefs.me.x){
+                }else if(nextCoordinates[0] < beliefs.me.x){
                     await client.emitMove('left');
-                }else if( nextCoordinates[1] > Beliefs.me.y){
+                }else if( nextCoordinates[1] > beliefs.me.y){
                     await client.emitMove('up');
-                }else if(nextCoordinates[1] < Beliefs.me.y){
+                }else if(nextCoordinates[1] < beliefs.me.y){
                     await client.emitMove('down');
                 }
 

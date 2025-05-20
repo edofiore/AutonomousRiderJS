@@ -1,5 +1,5 @@
 import { IntentionRevision } from "./index.js"
-import { Beliefs, constantBeliefs, Intention, putInFirstPosition, swapIntentions, GO_TO, GO_DELIVER, GO_PICK_UP } from "../index.js";
+import { beliefs, constantBeliefs, Intention, putInFirstPosition, swapIntentions, GO_TO, GO_DELIVER, GO_PICK_UP } from "../index.js";
 
 
 class IntentionRevisionRevise extends IntentionRevision {
@@ -29,8 +29,10 @@ class IntentionRevisionRevise extends IntentionRevision {
         // If the first position of the queue is occupied, evaluate the intentions
         if(this.intention_queue[0]){
 
-            // If the current intention is "go_to" and the new intention is "go_pick_up"
-            if(this.intention_queue[0].predicate[0] == GO_TO && new_intention.predicate[0] == GO_PICK_UP) {
+            // If the current intention is "go_to" and the new intention is "go_pick_up" or "go_deliver", stop the "go_to" intention.
+            // May happen that a "go_to" intention is added before a deliver even if the agent is picking up a parcel due to delay;
+            // in that case we stop the go_to.
+            if(this.intention_queue[0].predicate[0] == GO_TO && new_intention.predicate[0] != GO_TO) {
                 this.intention_queue[1] = new_intention;
                 console.log("Stopping...");
                 this.intention_queue[0].stop();
@@ -48,7 +50,8 @@ class IntentionRevisionRevise extends IntentionRevision {
                     /**
                      * TODO: Decide if to swap 2 intentions or simply stop the first one  
                      */
-                    const swap = swapIntentions(this.intention_queue[0], new_intention, Beliefs.me, constantBeliefs.config?.MOVEMENT_DURATION, constantBeliefs.config.MOVEMENT_STEPS, constantBeliefs.config.PDI, Beliefs.storedParcels)
+                    const swap = swapIntentions(this.intention_queue[0], new_intention, beliefs.me, constantBeliefs.config?.MOVEMENT_DURATION, 
+                        constantBeliefs.config.MOVEMENT_STEPS, constantBeliefs.config.PDI, beliefs.storedParcels)
 
                     // If true 
                     if(swap) {
