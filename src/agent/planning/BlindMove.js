@@ -1,27 +1,34 @@
 import { Plan } from "./index.js";
 import dijkstra from 'graphology-shortest-path';
 import { client } from "../../config/index.js";
-import { me, mapGraph, deliverySpots } from "../belief/index.js";
+import { Beliefs, constantBeliefs, GO_TO } from "../index.js";
+
 
 export let path = [];
 export class BlindMove extends Plan {
     static isApplicableTo ( go_to, x, y ) {
-        return go_to == 'go_to';
+        return go_to == GO_TO;
     }
 
+    
     async execute (go_to, x, y) {
         console.log("Executing go_to...")
-        if ( me.x != x || me.y != y ) {
+
+        // const me = beliefs.me;
+
+        if ( Beliefs.me.x != x || Beliefs.me.y != y ) {
+
+            // console.log("CIAOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOO")
 
             if (this.stopped) throw ['stopped']; // if stopped then quit
 
-            let myPos = Math.floor(me.x) + "-" + Math.floor(me.y);
+            let myPos = Math.floor(Beliefs.me.x) + "-" + Math.floor(Beliefs.me.y);
             let dest = Math.floor(x) + "-" + Math.floor(y);
 
             // console.log("MYPOS", myPos)
             // console.log("DESTINATION", dest)
             
-            path = dijkstra.bidirectional(mapGraph, myPos, dest);
+            path = dijkstra.bidirectional(constantBeliefs.map.mapGraph, myPos, dest);
             // console.log("PATH", path)
 
             path.shift();
@@ -34,13 +41,13 @@ export class BlindMove extends Plan {
                 
                 // TODO deliver if on a delivery spot
 
-                if( nextCoordinates[0] > me.x){
+                if( nextCoordinates[0] > Beliefs.me.x){
                     await client.emitMove('right');
-                }else if(nextCoordinates[0] < me.x){
+                }else if(nextCoordinates[0] < Beliefs.me.x){
                     await client.emitMove('left');
-                }else if( nextCoordinates[1] > me.y){
+                }else if( nextCoordinates[1] > Beliefs.me.y){
                     await client.emitMove('up');
-                }else if(nextCoordinates[1] < me.y){
+                }else if(nextCoordinates[1] < Beliefs.me.y){
                     await client.emitMove('down');
                 }
 

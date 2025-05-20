@@ -1,4 +1,4 @@
-import { storedParcels } from "../belief/index.js";
+import { Beliefs } from "../index.js";
 
 /**
  * From intention_revision.js in lab_4 (2025)
@@ -27,7 +27,7 @@ class IntentionRevision {
                 // Is queued intention still valid? Do I still want to achieve it?
                 // TODO: this hard-coded implementation is an example
                 let id = intention.predicate[2]
-                let p = storedParcels.get(id)
+                let p = Beliefs.storedParcels.get(id)
                 if (p && p.carriedBy) {
                     console.log("Skipping intention because no more valid", intention.predicate)
                     continue;

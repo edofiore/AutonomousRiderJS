@@ -1,10 +1,14 @@
 import dijkstra from 'graphology-shortest-path';
 // Import only the variables that never will change during the execution
-import { mapGraph, deliverySpots, parcelSpawners, MOVEMENT_DURATION, MOVEMENT_STEPS, PDI } from './belief/index.js';
+import { constantBeliefs } from './index.js';
 
-const GO_TO = "go_to"
-const GO_PICK_UP = "go_pick_up"
-const GO_DELIVER = "go_deliver"
+const GO_TO = "go_to";
+const GO_PICK_UP = "go_pick_up";
+const GO_DELIVER = "go_deliver";
+const BLOCKED_TILES = 0;    // '0' are blocked tiles (empty or not_tile)
+const WALKABLE_SPAWNING_TILES = 1;  // '1' are walkable spawning tiles
+const DELIVERABLE_TILES = 2;    // '2' are delivery tiles
+const WALKABLE_TILES = 3;   // '3' are walkable non-spawning tiles
 
 /**
  * Function to compute the distance (number of cells/steps) between 2 cells
@@ -16,11 +20,11 @@ const distance = ( current_pos, target_pos ) => {
     // console.log("{x1: %\i, y1: %\i}, {x2: %\i, y2: %\i}", x1, y1, x2, y2)
     
     if(current_pos.x != undefined && current_pos.y != undefined && target_pos.x != undefined && target_pos.y != undefined) {
-        let path = dijkstra.bidirectional(mapGraph, Math.floor(current_pos.x) + "-" + Math.floor(current_pos.y), Math.floor(target_pos.x) + "-" + Math.floor(target_pos.y))
+        let path = dijkstra.bidirectional(constantBeliefs.map.mapGraph, Math.floor(current_pos.x) + "-" + Math.floor(current_pos.y), Math.floor(target_pos.x) + "-" + Math.floor(target_pos.y))
         // console.log("PATHHHHHH", path)
     
         if(!path){
-            if(mapGraph.hasNode(Math.floor(current_pos.x) + "-" + Math.floor(current_pos.y)) && mapGraph.hasNode(Math.floor(target_pos.x) + "-" + Math.floor(target_pos.y))){
+            if(constantBeliefs.map.mapGraph.hasNode(Math.floor(current_pos.x) + "-" + Math.floor(current_pos.y)) && constantBeliefs.map.mapGraph.hasNode(Math.floor(target_pos.x) + "-" + Math.floor(target_pos.y))){
                 console.log("WRONG POSITIONS:", Math.floor(current_pos.x) + "-" + Math.floor(current_pos.y), Math.floor(target_pos.x) + "-" + Math.floor(target_pos.y));
             }
             return Number.MAX_VALUE;
@@ -47,14 +51,14 @@ const distance = ( current_pos, target_pos ) => {
 
 /**
  * Find the nearest delivery zone
- * @param {{x:number, y:number}} agent - The current position of the agent (could be "me" or some "opponents agent")
+ * @param {{x:number, y:number}} current_pos - The current position of the agent (could be "me" or some "opponents agent")
  * @returns {{x:number, y:number}} - The nearest delivery zone
  */
-const findNearestDeliverySpot = (agent) => {
+const findNearestDeliverySpot = (current_pos) => {
     let nearestDeliver = Number.MAX_VALUE;
     let best_spot = [];
-    for (const deliverySpot of deliverySpots) {
-        let current_d = distance( {x:parseInt(deliverySpot[0]), y:parseInt(deliverySpot[1])}, agent )
+    for (const deliverySpot of constantBeliefs.map.deliverySpots) {
+        let current_d = distance( {x:parseInt(deliverySpot[0]), y:parseInt(deliverySpot[1])}, current_pos )
         if ( current_d < nearestDeliver ) {
             best_spot = deliverySpot;
             nearestDeliver = current_d
@@ -73,7 +77,7 @@ const findNearestDeliverySpot = (agent) => {
 const findFarthestParcelSpawner = (agent) => {
     let farthestDeliver = Number.MIN_VALUE;
     let best_spot = [];
-    for (const spawn of parcelSpawners) {
+    for (const spawn of constantBeliefs.map.parcelSpawners) {
         let current_d = distance( {x:parseInt(spawn[0]), y:parseInt(spawn[1])}, agent )
         if ( current_d > farthestDeliver ) {
             best_spot = spawn;
@@ -218,7 +222,7 @@ const findBestOption = (options, parcels, agent) => {
             //     agent, {x, y}, {x:parseInt(nearest_delivery[0]), y:parseInt(nearest_delivery[1])},
             // );
 
-            const final_reward = getFinalReward(option[0], agent.carriedReward, MOVEMENT_DURATION, MOVEMENT_STEPS, parseInt(PDI), agent_pos, {x, y}, parcel.reward);
+            const final_reward = getFinalReward(option[0], agent.carriedReward, constantBeliefs.config.MOVEMENT_DURATION, constantBeliefs.config.MOVEMENT_STEPS, parseInt(constantBeliefs.config.PDI), agent_pos, {x, y}, parcel.reward);
             // console.log("final_reward")
             
             if (final_reward > biggest_reward) {
@@ -293,5 +297,6 @@ const putInFirstPosition = (new_intention, queue) => {
     return queue;
 }
 
-export { GO_TO, GO_PICK_UP, GO_DELIVER, distance, computeFinalReward, getPickupFinalReward, getDeliverFinalReward, getFinalReward, 
+export { GO_TO, GO_PICK_UP, GO_DELIVER, BLOCKED_TILES, WALKABLE_SPAWNING_TILES, DELIVERABLE_TILES, WALKABLE_TILES, 
+    distance, computeFinalReward, getPickupFinalReward, getDeliverFinalReward, getFinalReward, 
     findNearestDeliverySpot, findFarthestParcelSpawner, findBestOption, swapIntentions, putInFirstPosition };

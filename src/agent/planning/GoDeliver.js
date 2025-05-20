@@ -1,9 +1,10 @@
 import { Plan } from "./index.js";
 import { client } from "../../config/index.js";
+import { GO_DELIVER } from "../utils.js";
 
 export class GoDeliver extends Plan {
     static isApplicableTo (go_deliver, x, y, id) {
-            return go_deliver == 'go_deliver';
+            return go_deliver == GO_DELIVER;
     }
     
     async execute (go_deliver, x, y) {

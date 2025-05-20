@@ -1,5 +1,5 @@
 import { IntentionRevision } from "./index.js"
-import { GO_DELIVER, GO_PICK_UP, GO_TO, Intention, MOVEMENT_DURATION, MOVEMENT_STEPS, PDI, getFinalReward, me, putInFirstPosition, storedParcels, swapIntentions } from "../index.js";
+import { Beliefs, constantBeliefs, Intention, putInFirstPosition, swapIntentions, GO_TO, GO_DELIVER, GO_PICK_UP } from "../index.js";
 
 
 class IntentionRevisionRevise extends IntentionRevision {
@@ -48,7 +48,7 @@ class IntentionRevisionRevise extends IntentionRevision {
                     /**
                      * TODO: Decide if to swap 2 intentions or simply stop the first one  
                      */
-                    const swap = swapIntentions(this.intention_queue[0], new_intention, me, MOVEMENT_DURATION, MOVEMENT_STEPS, parseInt(PDI), storedParcels)
+                    const swap = swapIntentions(this.intention_queue[0], new_intention, Beliefs.me, constantBeliefs.config?.MOVEMENT_DURATION, constantBeliefs.config.MOVEMENT_STEPS, constantBeliefs.config.PDI, Beliefs.storedParcels)
 
                     // If true 
                     if(swap) {
@@ -66,7 +66,7 @@ class IntentionRevisionRevise extends IntentionRevision {
                 }
             } 
             // else if (this.intention_queue[0].predicate[0] == GO_PICK_UP && new_intention.predicate[0] != GO_TO) {
-            
+
             //     /**
             //      * TODO: compare to see the best pickup intention. If it is needed to stop and go for another pickup
             //      */

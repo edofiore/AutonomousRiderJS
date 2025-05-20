@@ -11,9 +11,9 @@ const newAgent = new Agent();
  * Belief revision
  */
 client.onConfig(config => getMapConfig(config));
-client.onMap((width, height, data) => processMapData(width, height, data));
+client.onMap(( width, height, data ) => processMapData(width, height, data));
 client.onYou(( {id, name, x, y, score} ) => updateInfoAgent({id, name, x, y, score}));
-client.onParcelsSensing(async (parcels) => {
+client.onParcelsSensing(async ( parcels ) => {
     await updateParcelsPerceived(parcels);
     await updateCarryingParcels(parcels);
 });
