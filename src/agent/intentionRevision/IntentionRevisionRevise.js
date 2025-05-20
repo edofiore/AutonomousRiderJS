@@ -44,16 +44,6 @@ class IntentionRevisionRevise extends IntentionRevision {
                  */
                 // If the new intention is "go_deliver" or "go_pick_up"
                 if(new_intention.predicate[0] == GO_PICK_UP || new_intention.predicate[0] == GO_DELIVER) {
-                    
-                    // const delivery_pos = {x: this.intention_queue[0].predicate[1], y: this.intention_queue[0].predicate[2]}
-                    // const parcel_pos = {x: intention.predicate[1], y: intention.predicate[2]}
-                    // const reward_parcel = storedParcels.get(intention.predicate[3]).reward
-
-                    // // TODO: change getFinalReward since I already have the position of the delivery spot
-                    // const deliver_final_reward = getFinalReward(this.intention_queue[0].predicate[0], me.carriedReward, MOVEMENT_DURATION, MOVEMENT_STEPS, PDI, me, delivery_pos);
-                    // const pickup_final_reward = getFinalReward(intention.predicate[0], me.carriedReward, MOVEMENT_DURATION, MOVEMENT_STEPS, PDI, me, parcel_pos, reward_parcel);
-
-                    // console.log("FINAL REWARD", deliver_final_reward, pickup_final_reward);
 
                     /**
                      * TODO: Decide if to swap 2 intentions or simply stop the first one  
@@ -76,6 +66,7 @@ class IntentionRevisionRevise extends IntentionRevision {
                 }
             } 
             // else if (this.intention_queue[0].predicate[0] == GO_PICK_UP && new_intention.predicate[0] != GO_TO) {
+            
             //     /**
             //      * TODO: compare to see the best pickup intention. If it is needed to stop and go for another pickup
             //      */
