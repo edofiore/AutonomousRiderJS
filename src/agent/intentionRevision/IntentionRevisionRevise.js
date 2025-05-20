@@ -1,5 +1,5 @@
 import { IntentionRevision } from "./index.js"
-import { GO_DELIVER, GO_PICK_UP, GO_TO, Intention, MOVEMENT_DURATION, MOVEMENT_STEPS, PDI, getFinalReward, me, storedParcels, swapIntentions } from "../index.js";
+import { GO_DELIVER, GO_PICK_UP, GO_TO, Intention, MOVEMENT_DURATION, MOVEMENT_STEPS, PDI, getFinalReward, me, putInFirstPosition, storedParcels, swapIntentions } from "../index.js";
 
 
 class IntentionRevisionRevise extends IntentionRevision {
@@ -16,11 +16,8 @@ class IntentionRevisionRevise extends IntentionRevision {
         // Check if already queued
         if ( this.intention_queue.find( (i) => i.predicate.join(' ') == predicate.join(' ') ) )
             return; // intention is already queued
-
-        // const first = this.intention_queue[0]
-        // const second = this.intention_queue[0]
         
-        const intention = new Intention( this, predicate );
+        const new_intention = new Intention( this, predicate );
         // this.intention_queue.push( intention );
 
         /**
@@ -29,23 +26,24 @@ class IntentionRevisionRevise extends IntentionRevision {
          * - the same in the case he's bringing packages and along the path pass over a delivery spot, he must deliver the packages he has
          */
 
+        // If the first position of the queue is occupied, evaluate the intentions
         if(this.intention_queue[0]){
-            // console.log("INTENTIONNNNNN", this.intention_queue[0].predicate)
-            if(this.intention_queue[0].predicate[0] == GO_TO && intention.predicate[0] == GO_PICK_UP) {
-                this.intention_queue[1] = intention;
+
+            // If the current intention is "go_to" and the new intention is "go_pick_up"
+            if(this.intention_queue[0].predicate[0] == GO_TO && new_intention.predicate[0] == GO_PICK_UP) {
+                this.intention_queue[1] = new_intention;
                 console.log("Stopping...");
                 this.intention_queue[0].stop();
-            } else if (this.intention_queue[0].predicate[0] == GO_DELIVER) {
-                this.intention_queue[1] = intention;
+
+            // Otherwise if the current intention is "go_deliver" or "go_pick_up"
+            } else if (this.intention_queue[0].predicate[0] == GO_DELIVER || this.intention_queue[0].predicate[0] == GO_PICK_UP) {
+                this.intention_queue[1] = new_intention;
 
                 /**
                  * Compare intention and re-order
                  */
-                if(intention.predicate[0] == GO_PICK_UP) {
-
-                    /**
-                     * TODO: put this in a function
-                     */
+                // If the new intention is "go_deliver" or "go_pick_up"
+                if(new_intention.predicate[0] == GO_PICK_UP || new_intention.predicate[0] == GO_DELIVER) {
                     
                     // const delivery_pos = {x: this.intention_queue[0].predicate[1], y: this.intention_queue[0].predicate[2]}
                     // const parcel_pos = {x: intention.predicate[1], y: intention.predicate[2]}
@@ -60,11 +58,13 @@ class IntentionRevisionRevise extends IntentionRevision {
                     /**
                      * TODO: Decide if to swap 2 intentions or simply stop the first one  
                      */
-                    const swap = swapIntentions(this.intention_queue[0], intention, me, MOVEMENT_DURATION, MOVEMENT_STEPS, PDI, storedParcels)
+                    const swap = swapIntentions(this.intention_queue[0], new_intention, me, MOVEMENT_DURATION, MOVEMENT_STEPS, parseInt(PDI), storedParcels)
 
+                    // If true 
                     if(swap) {
-                        console.log("Stopping...");
-                        this.intention_queue[0].stop();
+                        // console.log("Stopping...");
+                        // this.intention_queue[0].stop();
+                        this.intention_queue = putInFirstPosition(new_intention, this.intention_queue);
                     }
                     
                     // const best_option = findBestOption(this.intention_queue, me);
@@ -74,17 +74,19 @@ class IntentionRevisionRevise extends IntentionRevision {
                     //     this.intention_queue[1] = tmp;
                     // }
                 }
-            } else if (this.intention_queue[0].predicate[0] == GO_PICK_UP && intention.predicate[0] != GO_TO) {
-                /**
-                 * TODO: compare to see the best pickup intention. If it is needed to stop and go for another pickup
-                 */
+            } 
+            // else if (this.intention_queue[0].predicate[0] == GO_PICK_UP && new_intention.predicate[0] != GO_TO) {
+            //     /**
+            //      * TODO: compare to see the best pickup intention. If it is needed to stop and go for another pickup
+            //      */
 
-                this.intention_queue[1] = intention;
-            }
-        }else{
-            this.intention_queue[0] = intention;
+            //     this.intention_queue[1] = new_intention;
+            // }
+
+        // Otherwise, if the queue is empty, put the new intention in the first position of the queue
+        } else{
+            this.intention_queue[0] = new_intention;
         }
-
         
         console.log("QUEUE:", this.intention_queue);
     }

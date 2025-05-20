@@ -188,7 +188,7 @@ const getFinalReward = (intention_type, agent_reward, movement_duration, movemen
 
 /**
  * Find the best option to push as intention in the queue
- * @param {[[type: string, x: number, y: number, parcel_id: string]]} options - List of possible intentions
+ * @param {[[name: string, x: number, y: number, parcel_id: string]]} options - List of possible intentions
  * @param {[{id: string, carriedBy?: string, x:number, y:number, reward:number}]} parcels - List of the parcels
  * @param {{id:string, name:string, x:number, y:number, score:number, parcelsImCarrying:number, carriedReward:number}} agent - Agent for which to find the best option 
  * @returns {[string, number, number, string]} - Best option
@@ -238,16 +238,16 @@ const findBestOption = (options, parcels, agent) => {
 
 /**
  * Compare two intentions to decide if swap them
- * @param {*} intention_1 
- * @param {*} intention_2 
- * @param {*} agent 
- * @param {*} movement_duration 
- * @param {*} movement_steps 
- * @param {*} parcel_decading_interval 
+ * @param {[name: string, x: number, y: number, parcel_id: string]} intention_1 
+ * @param {[name: string, x: number, y: number, parcel_id: string]} intention_2 
+ * @param {{id:string, name:string, x:number, y:number, score:number, parcelsImCarrying:number, carriedReward:number}} agent 
+ * @param {number} movement_duration 
+ * @param {number} movement_steps 
+ * @param {number} parcel_decading_interval 
  * @param {Map< string, {id: string, carriedBy?: string, x:number, y:number, reward:number} >} parcels 
  * @returns 
  */
-const swapIntentions = (intention_1, intention_2, agent, movement_duration, movement_steps, parcel_decading_interval, parcels = null) => {
+const swapIntentions = (intention_1, intention_2, agent, movement_duration, movement_steps, parcel_decading_interval, parcels = undefined) => {
     const agent_pos = {x: agent.x, y: agent.y}
     let target_pos_1;
     // let parcel_pos_1;
@@ -262,13 +262,13 @@ const swapIntentions = (intention_1, intention_2, agent, movement_duration, move
     // else if it is "go_pick_up"
     } else if(intention_1.predicate[0] == GO_PICK_UP) {
         target_pos_1 = {x: intention_1.predicate[1], y: intention_1.predicate[2]}
-        reward_parcel_1 = parcels.get(intention_1.predicate[3]).reward ?? 0
+        reward_parcel_1 = parcels?.get(intention_1.predicate[3])?.reward ?? 0
     }
 
     // If the second intention is "go_deliver"
     if(intention_2.predicate[0] == GO_DELIVER) {
         target_pos_2 = {x: intention_2.predicate[1], y: intention_2.predicate[2]}
-        reward_parcel_2 = parcels.get(intention_2.predicate[3]).reward ?? 0
+        reward_parcel_2 = parcels?.get(intention_2.predicate[3])?.reward ?? 0
     // else if it is "go_pick_up"
     } else if(intention_2.predicate[0] == GO_PICK_UP) {
         target_pos_2 = {x: intention_2.predicate[1], y: intention_2.predicate[2]}
@@ -284,5 +284,14 @@ const swapIntentions = (intention_1, intention_2, agent, movement_duration, move
     return (intention_2_final_reward > intention_1_final_reward)
 }
 
+const putInFirstPosition = (new_intention, queue) => {
+    const tmp = queue[0];
+    queue[0].stop();
+    queue[0] = new_intention;
+    queue[1] = tmp;
+
+    return queue;
+}
+
 export { GO_TO, GO_PICK_UP, GO_DELIVER, distance, computeFinalReward, getPickupFinalReward, getDeliverFinalReward, getFinalReward, 
-    findNearestDeliverySpot, findFarthestParcelSpawner, findBestOption, swapIntentions };
+    findNearestDeliverySpot, findFarthestParcelSpawner, findBestOption, swapIntentions, putInFirstPosition };

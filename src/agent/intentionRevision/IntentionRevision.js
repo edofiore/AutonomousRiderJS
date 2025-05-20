@@ -11,9 +11,9 @@ class IntentionRevision {
         return this.#intention_queue;
     }
 
-    // set intention_queue (buffer) {
-    //     this.#intention_queue = [...buffer]
-    // }
+    set intention_queue (buffer) {
+        this.#intention_queue = [...buffer]
+    }
 
     async loop () {
         while (true) {
