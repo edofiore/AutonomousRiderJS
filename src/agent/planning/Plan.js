@@ -14,11 +14,11 @@ export class Plan {
     // This is used to stop the plan
     #stopped = false;   // private
 
-    stop () {
+    async stop () {
         this.log('Stop plan');
         this.#stopped = true;
         for(const i of this.#sub_intentions) {
-            i.stop();
+            await i.stop();
         }
     }
 
