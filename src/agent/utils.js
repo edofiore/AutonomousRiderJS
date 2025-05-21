@@ -203,39 +203,43 @@ const findBestOption = (options, parcels, agent) => {
 
     let biggest_reward = Number.MIN_VALUE;
 
-    for (const option of options) {
-        if(option[0] == GO_PICK_UP) {
-            const [, x, y, p_id] = option;
-            const agent_pos = {x: agent.x, y: agent.y}
-            // console.log("me", agent)
-            // const current_d = distance({x, y}, agent);
-            // console.log("DISTANCE", current_d)
-            // if (current_d < nearest) {
-            //     best_option = option;
-            //     nearest = current_d;
-            // }
+    if(options.length == 1) {
+        best_option = options[0];
+    } else {
+        for (const option of options) {
+            if(option[0] == GO_PICK_UP) {
+                const [, x, y, p_id] = option;
+                const agent_pos = {x: agent.x, y: agent.y}
+                // console.log("me", agent)
+                // const current_d = distance({x, y}, agent);
+                // console.log("DISTANCE", current_d)
+                // if (current_d < nearest) {
+                //     best_option = option;
+                //     nearest = current_d;
+                // }
 
-            const parcel = parcels.get(p_id);
-            // const nearest_delivery = findNearestDeliverySpot({x, y});
-            // const final_reward = getFinalReward(
-            //     parcel.reward, MOVEMENT_DURATION, MOVEMENT_STEPS, parseInt(PDI),
-            //     agent, {x, y}, {x:parseInt(nearest_delivery[0]), y:parseInt(nearest_delivery[1])},
-            // );
+                const parcel = parcels.get(p_id);
+                // const nearest_delivery = findNearestDeliverySpot({x, y});
+                // const final_reward = getFinalReward(
+                //     parcel.reward, MOVEMENT_DURATION, MOVEMENT_STEPS, parseInt(PDI),
+                //     agent, {x, y}, {x:parseInt(nearest_delivery[0]), y:parseInt(nearest_delivery[1])},
+                // );
 
-            const final_reward = getFinalReward(option[0], agent.carriedReward, constantBeliefs.config.MOVEMENT_DURATION, constantBeliefs.config.MOVEMENT_STEPS, parseInt(constantBeliefs.config.PDI), agent_pos, {x, y}, parcel.reward);
-            // console.log("final_reward")
-            
-            if (final_reward > biggest_reward) {
+                const final_reward = getFinalReward(option[0], agent.carriedReward, constantBeliefs.config.MOVEMENT_DURATION, constantBeliefs.config.MOVEMENT_STEPS, parseInt(constantBeliefs.config.PDI), agent_pos, {x, y}, parcel.reward);
+                // console.log("final_reward")
+                
+                if (final_reward > biggest_reward) {
+                    best_option = option;
+                    biggest_reward = final_reward;
+                }
+
+            } else if (option[0] == GO_DELIVER) {
                 best_option = option;
-                biggest_reward = final_reward;
+            } else if (option[0] == GO_TO) {
+                best_option = option;
             }
-
-        } else if (option[0] == GO_DELIVER) {
-            best_option = option;
-        } else if (option[0] == GO_TO) {
-            best_option = option;
         }
-    }
+    } 
 
     return best_option
 }
@@ -288,15 +292,25 @@ const swapIntentions = (intention_1, intention_2, agent, movement_duration, move
     return (intention_2_final_reward > intention_1_final_reward)
 }
 
-const putInFirstPosition = (new_intention, queue) => {
-    const tmp = queue[0];
-    queue[0].stop();
-    queue[0] = new_intention;
-    queue[1] = tmp;
+const putInTheQueue = async (index, new_intention, queue) => {
+    if(index == 0) {
+        const tmp = queue[index];
+        await queue[index].stop();
+        queue[index] = new_intention;
+        queue[index+1] = tmp;
+    } else {
+        await queue[index].stop();
+        queue[index] = new_intention;
+    }
+    
+    // setTimeout(() => {
+    //     queue[0].stop();
+    // }, 100)
+
 
     return queue;
 }
 
 export { GO_TO, GO_PICK_UP, GO_DELIVER, BLOCKED_TILES, WALKABLE_SPAWNING_TILES, DELIVERABLE_TILES, WALKABLE_TILES, 
     distance, computeFinalReward, getPickupFinalReward, getDeliverFinalReward, getFinalReward, 
-    findNearestDeliverySpot, findFarthestParcelSpawner, findBestOption, swapIntentions, putInFirstPosition };
+    findNearestDeliverySpot, findFarthestParcelSpawner, findBestOption, swapIntentions, putInTheQueue };

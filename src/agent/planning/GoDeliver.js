@@ -1,6 +1,7 @@
 import { Plan } from "./index.js";
 import { client } from "../../config/index.js";
 import { GO_DELIVER } from "../utils.js";
+import { beliefs } from "../index.js";
 
 export class GoDeliver extends Plan {
     static isApplicableTo (go_deliver, x, y, id) {
@@ -12,9 +13,9 @@ export class GoDeliver extends Plan {
         await this.subIntention( ['go_to', parseInt(x), parseInt(y)] );
         if (this.stopped) throw ['stopped']; // if stopped then quit
         console.log("DELIVERYING AT: ", x, y, "(INTENTION)");
-        // if(me.x == x && me.y == y){
-        await client.emitPutdown();
-        // }
+        if(beliefs.me.x == x && beliefs.me.y == y){
+            await client.emitPutdown();
+        }
         if (this.stopped) throw ['stopped']; // if stopped then quit
         return true;    
     } 

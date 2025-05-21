@@ -21,9 +21,12 @@ client.onParcelsSensing(async ( parcels ) => {
 /**
  * Generate options at every sensing event
  */
-client.onParcelsSensing( optionsGeneration );
-client.onAgentsSensing( optionsGeneration );
-client.onYou( optionsGeneration );
+setInterval(() => {
+    client.onParcelsSensing( async () => await optionsGeneration() );
+    client.onAgentsSensing( async () => await optionsGeneration() );
+    client.onYou( async () => await optionsGeneration() );
+    }, [1000]
+)
 
 // Function to trigger the agent when parcels are sensed 
 newAgent.start();

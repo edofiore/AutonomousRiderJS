@@ -74,6 +74,7 @@ const getMapConfig = (config) => {
     constantBeliefs.config.PRA = config.PARCEL_REWARD_AVG;                      // PARCEL REWARD AVG
     constantBeliefs.config.PRV = config.PARCEL_REWARD_VARIANCE;                 // PARCEL REWARD VARIANCE
     constantBeliefs.config.PARCELS_MAX = config.PARCELS_MAX;                    // PARCELS MAX
+    // constantBeliefs.config.CLOCK = parseInt(config.CLOCK);                      // CLOCK
 
     // constantBeliefs.config.PARCEL_DECADING_INTERVAL = parseInt(config.PARCEL_DECADING_INTERVAL)
     // constantBeliefs.config.PARCELS_GENERATION_INTERVAL = parseInt(config.PARCELS_GENERATION_INTERVAL)

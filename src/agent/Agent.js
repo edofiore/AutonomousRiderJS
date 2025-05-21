@@ -17,12 +17,12 @@ class Agent {
         await this.intentionRevision.push(predicate)
     }
 
-    async stop() {
-        console.log("Stop agent queued intentions!");
-        for (const intention of this.intention_queue) {
-            intention.stop();
-        }
-    }
+    // async stop() {
+    //     console.log("Stop agent queued intentions!");
+    //     for (const intention of this.intention_queue) {
+    //         await intention.stop();
+    //     }
+    // }
 }
 
 export {Agent};

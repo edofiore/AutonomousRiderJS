@@ -18,8 +18,6 @@ export class BlindMove extends Plan {
 
         if ( beliefs.me.x != x || beliefs.me.y != y ) {
 
-            // console.log("CIAOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOO")
-
             if (this.stopped) throw ['stopped']; // if stopped then quit
 
             let myPos = Math.floor(beliefs.me.x) + "-" + Math.floor(beliefs.me.y);
@@ -54,6 +52,8 @@ export class BlindMove extends Plan {
                 if ( this.stopped ) throw ['stopped']; // if stopped then quit
             }
         }
+
+        if ( this.stopped ) throw ['stopped']; // if stopped then quit
 
         return true;
     }

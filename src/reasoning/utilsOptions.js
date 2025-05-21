@@ -2,7 +2,7 @@ import {beliefs, findNearestDeliverySpot, findFarthestParcelSpawner, findBestOpt
 import { newAgent } from "../autonomousRider.js";
 
 
-function optionsGeneration() {
+async function optionsGeneration() {
 
     // const me = beliefs.me;
 
@@ -27,14 +27,15 @@ function optionsGeneration() {
          * TODO: dovrei calcolare il reward finale? Magari andare a deliverare solo se il final reward fosse > 0? 
          */
         if(beliefs.me.parcelsImCarrying > 0) {
+            // TODO: I should pass the position of the last package the agent will take, not the current package
             const best_spot = findNearestDeliverySpot(beliefs.me);
 
-            options.push([GO_DELIVER, best_spot[0], best_spot[1]]);
+            options.push([GO_DELIVER, parseInt(best_spot[0]), parseInt(best_spot[1])]);
 
         // Otherwise move the agents away to looking for parcels
         } else {
             const best_spot = findFarthestParcelSpawner(beliefs.me);
-            options.push([GO_TO, best_spot[0], best_spot[1]]);
+            options.push([GO_TO, parseInt(best_spot[0]), parseInt(best_spot[1])]);
         }
     }
 
@@ -43,6 +44,7 @@ function optionsGeneration() {
     /**
      * Options filtering
      */
+    
     const best_option = findBestOption(options, beliefs.storedParcels, beliefs.me);
 
 
@@ -51,7 +53,7 @@ function optionsGeneration() {
      */
     if (best_option) {
         console.log("BEST OPTION",best_option)
-        newAgent.push(best_option);
+        await newAgent.push(best_option);
     }
 }
 
