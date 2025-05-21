@@ -1,5 +1,5 @@
 import { IntentionRevision } from "./index.js"
-import { beliefs, constantBeliefs, Intention, putInFirstPosition, swapIntentions, GO_TO, GO_DELIVER, GO_PICK_UP } from "../index.js";
+import { beliefs, constantBeliefs, Intention, putInTheQueue, swapIntentions, GO_TO, GO_DELIVER, GO_PICK_UP } from "../index.js";
 
 
 class IntentionRevisionRevise extends IntentionRevision {
@@ -34,12 +34,15 @@ class IntentionRevisionRevise extends IntentionRevision {
             // in that case we stop the go_to.
             if(this.intention_queue[0].predicate[0] == GO_TO && new_intention.predicate[0] != GO_TO) {
                 this.intention_queue[1] = new_intention;
+                console.log("UPDATED QUEUE 1:", this.intention_queue.map(intention => intention.predicate))
                 console.log("Stopping...");
-                this.intention_queue[0].stop();
+                await this.intention_queue[0].stop();
+                console.log("UPDATED QUEUE 2:", this.intention_queue.map(intention => intention.predicate))
 
             // Otherwise if the current intention is "go_deliver" or "go_pick_up"
             } else if (this.intention_queue[0].predicate[0] == GO_DELIVER || this.intention_queue[0].predicate[0] == GO_PICK_UP) {
                 this.intention_queue[1] = new_intention;
+                console.log("UPDATED QUEUE 3:", this.intention_queue.map(intention => intention.predicate))
 
                 /**
                  * Compare intention and re-order
@@ -50,14 +53,25 @@ class IntentionRevisionRevise extends IntentionRevision {
                     /**
                      * TODO: Decide if to swap 2 intentions or simply stop the first one  
                      */
+                    // Compare if the new intention is better than the first in the queue 
                     const swap = swapIntentions(this.intention_queue[0], new_intention, beliefs.me, constantBeliefs.config?.MOVEMENT_DURATION, 
                         constantBeliefs.config.MOVEMENT_STEPS, constantBeliefs.config.PDI, beliefs.storedParcels)
 
-                    // If true 
+                    // If true, put the new intention in first position and shift the rest
                     if(swap) {
                         // console.log("Stopping...");
                         // this.intention_queue[0].stop();
-                        this.intention_queue = putInFirstPosition(new_intention, this.intention_queue);
+                        this.intention_queue = await putInTheQueue(0, new_intention, this.intention_queue);
+                        
+                        console.log("UPDATED QUEUE 4:", this.intention_queue.map(intention => intention.predicate))
+                    // Otherwise, if the first in the queue is better, compare the new intention with the second one of the queue
+                    } else {
+                        const swap_again = swapIntentions(this.intention_queue[1], new_intention, beliefs.me, constantBeliefs.config.MOVEMENT_DURATION, 
+                        constantBeliefs.config.MOVEMENT_STEPS, constantBeliefs.config.PDI, beliefs.storedParcels)
+
+                        if (swap_again) {
+                            this.intention_queue = await putInTheQueue(1, new_intention, this.intention_queue);
+                        }
                     }
                     
                     // const best_option = findBestOption(this.intention_queue, me);
@@ -80,9 +94,10 @@ class IntentionRevisionRevise extends IntentionRevision {
         // Otherwise, if the queue is empty, put the new intention in the first position of the queue
         } else{
             this.intention_queue[0] = new_intention;
+            console.log("UPDATED QUEUE 0:", this.intention_queue.map(intention => intention.predicate))
         }
         
-        console.log("QUEUE:", this.intention_queue);
+        console.log("QUEUE:", this.intention_queue.map(intention => intention.predicate));
     }
 }
 

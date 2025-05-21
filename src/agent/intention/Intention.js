@@ -13,11 +13,11 @@ class Intention {
     get stopped () {
         return this.#stopped;
     }
-    stop () {
+    async stop () {
         this.log( 'stop intention', ...this.#predicate );
         this.#stopped = true;
         if (this.#current_plan)
-            this.#current_plan.stop();
+            await this.#current_plan.stop();
     }
 
     /**
