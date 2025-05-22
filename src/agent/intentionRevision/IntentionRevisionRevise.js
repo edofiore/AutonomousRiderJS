@@ -12,6 +12,11 @@ class IntentionRevisionRevise extends IntentionRevision {
     //     // - evaluate validity of intention
     // }
 
+    /**
+     * 
+     * @param {[name: string, x: number, y: number, parcel_id: number]} predicate 
+     * @returns 
+     */
     async push ( predicate ) {
         // Check if already queued
         if ( this.intention_queue.find( (i) => i.predicate.join(' ') == predicate.join(' ') ) )

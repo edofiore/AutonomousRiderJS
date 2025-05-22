@@ -1,4 +1,5 @@
 import { constantBeliefs, BLOCKED_TILES, WALKABLE_SPAWNING_TILES, DELIVERABLE_TILES } from "../index.js";
+i
 
 /**
  * Define local variables
@@ -61,23 +62,20 @@ const processMapData = (width, height, data) => {
 
 /**
  * Get the config of the map
- * @param {*} config 
+ * @param {Config} config 
  */
 const getMapConfig = (config) => {
     // constantBeliefs.config = config;
-    constantBeliefs.config.MOVEMENT_DURATION = config.MOVEMENT_DURATION;        // MOVEMENT DURATION
-    constantBeliefs.config.MOVEMENT_STEPS = config.MOVEMENT_STEPS;              // MOVEMENT STEPS
-    constantBeliefs.config.PDI = parseInt(config.PARCEL_DECADING_INTERVAL);     // PARCEL DECADING INTERVAL
-    constantBeliefs.config.AOD = config.AGENTS_OBSERVATION_DISTANCE;            // AGENTS OBSERVATION DISTANCE
-    constantBeliefs.config.POD = config.PARCELS_OBSERVATION_DISTANCE;           // PARCELS OBSERVATION DISTANCE
-    constantBeliefs.config.PGI = parseInt(config.PARCELS_GENERATION_INTERVAL);  // PARCELS GENERATION INTERVAL
-    constantBeliefs.config.PRA = config.PARCEL_REWARD_AVG;                      // PARCEL REWARD AVG
-    constantBeliefs.config.PRV = config.PARCEL_REWARD_VARIANCE;                 // PARCEL REWARD VARIANCE
-    constantBeliefs.config.PARCELS_MAX = config.PARCELS_MAX;                    // PARCELS MAX
-    // constantBeliefs.config.CLOCK = parseInt(config.CLOCK);                      // CLOCK
-
-    // constantBeliefs.config.PARCEL_DECADING_INTERVAL = parseInt(config.PARCEL_DECADING_INTERVAL)
-    // constantBeliefs.config.PARCELS_GENERATION_INTERVAL = parseInt(config.PARCELS_GENERATION_INTERVAL)
+    constantBeliefs.config.MOVEMENT_DURATION = config.MOVEMENT_DURATION;        // time in ms
+    constantBeliefs.config.MOVEMENT_STEPS = config.MOVEMENT_STEPS;              // 1 intermediate at 0.6
+    constantBeliefs.config.AOD = config.AGENTS_OBSERVATION_DISTANCE;            // number or 'infinite'
+    constantBeliefs.config.POD = config.PARCELS_OBSERVATION_DISTANCE;           // number or 'infinite'
+    constantBeliefs.config.PDI = parseInt(config.PARCEL_DECADING_INTERVAL);     // '1s', '2s', '5s', '10s', 'infinite'
+    constantBeliefs.config.PGI = parseInt(config.PARCELS_GENERATION_INTERVAL);  // '1s', '2s', '5s', '10s'
+    constantBeliefs.config.PRA = config.PARCEL_REWARD_AVG;                      // number
+    constantBeliefs.config.PRV = config.PARCEL_REWARD_VARIANCE;                 // number
+    constantBeliefs.config.PARCELS_MAX = config.PARCELS_MAX;                    // number or 'infinite'
+    // constantBeliefs.config.CLOCK = parseInt(config.CLOCK);                      // (50ms are 20frame/s)
 
     // console.log("config", config)
 }
