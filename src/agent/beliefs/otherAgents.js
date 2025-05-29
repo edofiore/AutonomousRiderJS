@@ -3,12 +3,12 @@ import { beliefs, constantBeliefs } from "./index.js";
 
 /**
  * Update the info about the other perceived agents
- * @param {*} agents 
+ * @param {MeAgent} agents 
  */
 
 const start = Date.now();
 const updateInfoOtherAgents = (agents) => {
-    console.log("AGENTS", agents)
+    console.log("AGENTS", agents.map((agent) => agent))
 
     const timestamp = Date.now() - start;
     for(const a of agents) {

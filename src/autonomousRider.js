@@ -73,6 +73,10 @@ await new Promise(res => {
  * Generate options at every sensing event
  */
 
+// client.onParcelsSensing( async () => await optionsGeneration() );
+// client.onAgentsSensing( async () => await optionsGeneration() );
+// client.onYou( async () => await optionsGeneration() );
+
 /**
  * TODO: check if setInterval() is needed
  */

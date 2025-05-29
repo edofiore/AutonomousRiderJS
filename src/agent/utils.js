@@ -93,7 +93,7 @@ const findFarthestParcelSpawner = (agent) => {
  * @param {number} reward - Total reward the agent will carry
  * @param {number} movement_duration - 
  * @param {number} movement_steps - 
- * @param {number} parcel_decading_interval - 
+ * @param {Interval | 'infinite'} parcel_decading_interval - 
  * @param {number} distance_to_delivery - Current position of the agent
  * @param {number} [distance_to_parcel = 0] - Optional intermediate target position
  * @returns {number} - The effective reward to do an intention
@@ -101,8 +101,8 @@ const findFarthestParcelSpawner = (agent) => {
 const computeFinalReward = (reward, movement_duration, movement_steps, parcel_decading_interval, distance_to_delivery, distance_to_parcel = 0) => {
 
     // Check if the variable is a number, otherwise convert it
-    if(typeof parcel_decading_interval != "number")
-        parcel_decading_interval = parseInt(parcel_decading_interval)
+    // if(!(parcel_decading_interval in Interval) )
+    //     parcel_decading_interval = parseInt(parcel_decading_interval)
 
     // Calculate the amount of loss of the reward at each agent movement
     const ratio_time = movement_duration/(parcel_decading_interval*1000); // ms
@@ -121,7 +121,7 @@ const computeFinalReward = (reward, movement_duration, movement_steps, parcel_de
  * @param {number} reward - Parcel reward or total reward
  * @param {number} movement_duration 
  * @param {number} movement_steps 
- * @param {number} parcel_decading_interval 
+ * @param {Interval | 'infinite'} parcel_decading_interval 
  * @param {{x:number, y:number}} agent - Current agent position
  * @param {{x:number, y:number}} delivery_pos - Delivery spot position
  * @returns {number} - final_reward
@@ -144,7 +144,7 @@ const getDeliverFinalReward = (reward, movement_duration, movement_steps, parcel
  * @param {number} parcel_reward - Parcel reward 
  * @param {number} movement_duration 
  * @param {number} movement_steps 
- * @param {number} parcel_decading_interval 
+ * @param {Interval | 'infinite'} parcel_decading_interval 
  * @param {{x:number, y:number}} agent - Current agent position
  * @param {{x:number, y:number}} parcel_pos - Parcel position to pick up
  * @returns {number} - final_reward
@@ -172,7 +172,7 @@ const getPickupFinalReward = (agent_reward, parcel_reward, movement_duration, mo
  * @param {number} agent_reward - Reward the agent is carrying
  * @param {number} movement_duration 
  * @param {number} movement_steps 
- * @param {number} parcel_decading_interval 
+ * @param {numbeInterval | 'infinite'r} parcel_decading_interval 
  * @param {{x:number, y:number}} agent - Current agent position
  * @param {{x:number, y:number}} parcel_pos - Parcel position to pick up
  * @param {number} [parcel_reward = 0] - Parcel reward 
@@ -192,9 +192,9 @@ const getFinalReward = (intention_type, agent_reward, movement_duration, movemen
 
 /**
  * Find the best option to push as intention in the queue
- * @param {[[name: string, x: number, y: number, parcel_id: string]]} options - List of possible intentions
- * @param {[{id: string, carriedBy?: string, x:number, y:number, reward:number}]} parcels - List of the parcels
- * @param {{id:string, name:string, x:number, y:number, score:number, parcelsImCarrying:number, carriedReward:number}} agent - Agent for which to find the best option 
+ * @param {[[action: string, x: number, y: number, parcel_id: string]]} options - List of possible intentions
+ * @param {Parcel[]} parcels - List of the parcels
+ * @param {MeAgent} agent - Agent for which to find the best option 
  * @returns {[string, number, number, string]} - Best option
  */
 const findBestOption = (options, parcels, agent) => {
@@ -244,6 +244,11 @@ const findBestOption = (options, parcels, agent) => {
     return best_option
 }
 
+
+/**
+ * TODO: consider when PDI is 'infinite'
+ */
+
 /**
  * Compare two intentions to decide if swap them
  * @param {[name: string, x: number, y: number, parcel_id: string]} intention_1 
@@ -251,7 +256,7 @@ const findBestOption = (options, parcels, agent) => {
  * @param {{id:string, name:string, x:number, y:number, score:number, parcelsImCarrying:number, carriedReward:number}} agent 
  * @param {number} movement_duration 
  * @param {number} movement_steps 
- * @param {number} parcel_decading_interval 
+ * @param {Interval | 'infinite'} parcel_decading_interval 
  * @param {Map< string, {id: string, carriedBy?: string, x:number, y:number, reward:number} >} parcels 
  * @returns 
  */
