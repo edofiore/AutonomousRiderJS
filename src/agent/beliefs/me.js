@@ -1,7 +1,7 @@
 import { beliefs } from "./index.js"
 
 /**
- * @type { {id:string, name:string, x:number, y:number, score:number, parcelsImCarrying:number, carriedReward:number} }
+ * @type { MeAgent }
  */
 // const me = {
 //     id: null, 
@@ -15,7 +15,7 @@ import { beliefs } from "./index.js"
 
 /**
  * Update the main info about the agent 
- * @param {{string, string, number, number, number}} - {id, name, x, y, score}
+ * @param { Agent } - {id, name, x, y, score}
  */
 const updateInfoAgent = ({id, name, x, y, score}) => {
 

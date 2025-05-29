@@ -35,6 +35,8 @@ export class BlindMove extends Plan {
             if (this.stopped) throw ['stopped']; // if stopped then quit
 
             for(let nextDest of path){
+                // Check if the agent has reached integer coordinates, if he completed the movement
+                var check = new Promise( res => client.onYou( m => m.x % 1 != 0 || m.y % 1 != 0 ? null : res() ) );
                 nextCoordinates = nextDest.split("-");
                 
                 // TODO deliver if on a delivery spot
@@ -48,6 +50,10 @@ export class BlindMove extends Plan {
                 }else if(nextCoordinates[1] < beliefs.me.y){
                     await client.emitMove('down');
                 }
+
+                if ( this.stopped ) throw ['stopped']; // if stopped then quit
+
+                await check;
 
                 if ( this.stopped ) throw ['stopped']; // if stopped then quit
             }

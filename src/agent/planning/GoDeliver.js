@@ -10,6 +10,10 @@ export class GoDeliver extends Plan {
     
     async execute (go_deliver, x, y) {
         if (this.stopped) throw ['stopped']; // if stopped then quit
+        if (!beliefs.me?.parcelsImCarrying > 0) {
+            throw ['Nothing to deliver'];
+        }
+        if (this.stopped) throw ['stopped']; // if stopped then quit
         await this.subIntention( ['go_to', parseInt(x), parseInt(y)] );
         if (this.stopped) throw ['stopped']; // if stopped then quit
         console.log("DELIVERYING AT: ", x, y, "(INTENTION)");

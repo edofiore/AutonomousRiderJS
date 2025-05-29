@@ -1,13 +1,6 @@
 import UndirectedGraph from "graphology";
 
 /**
- * @typedef {Object} Beliefs
- * @property {{ id: string, name: string, x: number, y: number, score: number, parcelsImCarrying: number, carriedReward: number }} me
- * @property {Map<string, { id: string, carriedBy?: string, x: number, y: number, reward: number }>} storedParcels
- * @property {{ [id: string]: { id: string, name: string, x: number, y: number, score: number, parcelsImCarrying: number, carriedReward: number } }} otherAgents
- */
-
-/**
  * @type {Beliefs}
  */
 const beliefs = {
@@ -21,24 +14,25 @@ const beliefs = {
         carriedReward: null     // Total reward the agent is carrying
     },
     storedParcels: new Map(),
-    otherAgents: {},
+    otherAgents: new Map(),
 }
 
-/**
- * @typedef {Object} ConstantBeliefs
- * @property {Object} config
- * @property {{
- *   mapGraph: import("graphology").UndirectedGraph,
- *   deliverySpots: string[],
- *   parcelSpawners: string[]
- * }} map
- */
 
 /**
  * @type {ConstantBeliefs} - constantBeliefs
  */
 const constantBeliefs = {
-    config: {},
+    config: {
+        MOVEMENT_DURATION: null, // (time in ms)
+        MOVEMENT_STEPS: null,   // (1 intermediate at 0.6)
+        AOD: null,  // AGENTS_OBSERVATION_DISTANCE (number or 'infinite')
+        POD: null,  // PARCELS_OBSERVATION_DISTANCE (number or 'infinite')
+        PDI: null,  // PARCEL_DECADING_INTERVAL ('1s', '2s', '5s', '10s', 'infinite')
+        PGI: null,  // PARCELS_GENERATION_INTERVAL ('1s', '2s', '5s', '10s')
+        PRA: null,  // PARCEL_REWARD_AVG (number)
+        PRV: null,  // PARCEL_REWARD_VARIANCE (number)
+        PARCELS_MAX: null   // (number or 'infinite')
+    },
     map: {
         mapGraph: new UndirectedGraph(),
         deliverySpots: [],

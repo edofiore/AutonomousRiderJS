@@ -2,7 +2,9 @@
  * Intention
  */
 
+import { beliefs } from "../beliefs/beliefs.js";
 import { planLibrary } from "../planning/index.js";
+import { GO_DELIVER, GO_PICK_UP, GO_TO } from "../utils.js";
 
 class Intention {
     // Plan currently used for achieving the intention
@@ -26,13 +28,13 @@ class Intention {
     #parent;
 
     /**
-     * @type { any[] } #predicate is in the form ['go_to', x, y]
+     * @type { Option[] } #predicate is in the form [action, x, y, parcel_id]
      */
     get predicate () {
         return this.#predicate;
     }
     /**
-     * @type { any[] } #predicate is in the form ['go_to', x, y]
+     * @type { Option[] } #predicate is in the form [action, x, y, parcel_id]
      */
     #predicate;
 
@@ -47,6 +49,31 @@ class Intention {
         else
             console.log(...args)
     }
+
+    isStillValid () {
+        console.log("Is this still valid?");
+
+        const [action, x, y, p_id] = this.#predicate;
+
+        if (action == GO_PICK_UP) {
+            return beliefs.storedParcels.has(p_id)
+        }
+
+        /**
+         * TODO: check also if the reward will be >0 when the agent will deliver the packages?
+         * 
+         * Verify if this could be a problem or if we manage this before. 
+         */
+        if (action == GO_DELIVER) {
+            return beliefs.me.parcelsImCarrying > 0
+        }
+
+        if (action == GO_TO) {
+            return true
+        }
+
+        // return true
+    }
     
     #started = false;
     
@@ -59,6 +86,11 @@ class Intention {
             return this;
         else
             this.#started = true;
+
+        if (!this.isStillValid()) {
+            this.log('Intention no longer valid:', ...this.#predicate);
+            throw ['intention invalidated', ...this.#predicate];
+        }
 
         // Trying all plans in the library
         for (const planClass of planLibrary) {
