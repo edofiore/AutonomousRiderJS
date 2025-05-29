@@ -5,40 +5,58 @@ import { newAgent } from "../autonomousRider.js";
 async function optionsGeneration() {
 
     // const me = beliefs.me;
+    const intention_queue = newAgent.intentionRevision.intention_queue;
 
     /**
      * Options generation
      */
     const options = [];
-    console.log("STORED PARCELS", beliefs.storedParcels)
+    // console.log("STORED PARCELS", beliefs.storedParcels)
 
     // For each
     for (const parcel of beliefs.storedParcels.values()) {
-        if (!parcel.carriedBy) {    // TODO: Check if this is necessary, at the moment we store only free parcels
+        if (!parcel.carriedBy && parcel.reward > 0) {    // TODO: Check if this is necessary, at the moment we store only free parcels
             options.push([GO_PICK_UP, parcel.x, parcel.y, parcel.id]);
         } 
     }
 
+    /**
+     * TODO: control the amount of options I'm generating. I'm generating useless options
+     * For example, I'm continuosly generating the same intention even if I'm already achieving that intention 
+     * 
+     * Should I know the intention_queue?
+     * 
+     */
     // This means no parcel are perceived
-    // if (storedParcels.length == 0 ) {
+    // if (beliefs.storedParcels.length == 0) {
     if (options.length == 0 ) {
         // If the agent are bringing some parcels go to deliver
         /**
          * TODO: dovrei calcolare il reward finale? Magari andare a deliverare solo se il final reward fosse > 0? 
          */
-        if(beliefs.me.parcelsImCarrying > 0) {
-            // TODO: I should pass the position of the last package the agent will take, not the current package
-            const best_spot = findNearestDeliverySpot(beliefs.me);
 
-            options.push([GO_DELIVER, parseInt(best_spot[0]), parseInt(best_spot[1])]);
+        if(intention_queue.length > 0) {
+
+            if(intention_queue[0].predicate[0] == GO_PICK_UP) {
+                if(intention_queue[1] == undefined || intention_queue[1].predicate[0] != GO_PICK_UP ) {
+                    // TODO: I should pass the position of the last package the agent will take, not the current package
+                    const start_pos = {x: intention_queue[0].predicate[1], y: intention_queue[0].predicate[2]}
+                    const best_spot = findNearestDeliverySpot(start_pos);
+                    options.push([GO_DELIVER, parseInt(best_spot[0]), parseInt(best_spot[1])]);
+                }
+            } else if(intention_queue[0].predicate[0] == GO_TO || intention_queue[0].predicate[0] == GO_DELIVER && intention_queue[1] == undefined) {
+                const start_pos = {x: intention_queue[0].predicate[1], y: intention_queue[0].predicate[2]}
+                const best_spot = findFarthestParcelSpawner(start_pos);
+                options.push([GO_TO, parseInt(best_spot[0]), parseInt(best_spot[1])]);
+            }
 
         // Otherwise move the agents away to looking for parcels
         } else {
             const best_spot = findFarthestParcelSpawner(beliefs.me);
             options.push([GO_TO, parseInt(best_spot[0]), parseInt(best_spot[1])]);
         }
+    
     }
-
     console.log("OPTIONS", options)
 
     /**
@@ -52,7 +70,7 @@ async function optionsGeneration() {
      * Best option is selected
      */
     if (best_option) {
-        console.log("BEST OPTION",best_option)
+        console.log("BEST OPTION",best_option);
         await newAgent.push(best_option);
     }
 }
