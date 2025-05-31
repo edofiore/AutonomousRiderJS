@@ -3,7 +3,7 @@ import { client } from "../../config/index.js";
 import { GO_PICK_UP } from "../utils.js";
 import { beliefs } from "../beliefs/beliefs.js";
 
-export class GoPickUp extends Plan {
+class GoPickUp extends Plan {
     static isApplicableTo (go_pick_up, x, y, id) {
         return go_pick_up == GO_PICK_UP;
     }
@@ -26,3 +26,5 @@ export class GoPickUp extends Plan {
         return true;    
     }
 }
+
+export { GoPickUp };

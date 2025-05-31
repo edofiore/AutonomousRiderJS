@@ -37,6 +37,7 @@ class IntentionRevision {
                     if (p && p.carriedBy) {
                         console.log('Nothing to pick up!');
                         console.log("Skipping intention because no more valid", intention.predicate);
+                        this.intention_queue.shift();
                         continue;
                     }
                 } else if(intention.predicate[0] == GO_DELIVER) {

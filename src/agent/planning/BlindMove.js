@@ -2,10 +2,11 @@ import { Plan } from "./index.js";
 import dijkstra from 'graphology-shortest-path';
 import { client } from "../../config/index.js";
 import { beliefs, constantBeliefs, GO_TO } from "../index.js";
+import { findPath } from "./utilsPlanning.js";
 
 
-export let path = [];
-export class BlindMove extends Plan {
+class BlindMove extends Plan {
+
     static isApplicableTo ( go_to, x, y ) {
         return go_to == GO_TO;
     }
@@ -20,16 +21,19 @@ export class BlindMove extends Plan {
 
             if (this.stopped) throw ['stopped']; // if stopped then quit
 
-            let myPos = Math.floor(beliefs.me.x) + "-" + Math.floor(beliefs.me.y);
-            let dest = Math.floor(x) + "-" + Math.floor(y);
+            // let myPos = Math.floor(beliefs.me.x) + "-" + Math.floor(beliefs.me.y);
+            // let dest = Math.floor(x) + "-" + Math.floor(y);
 
-            // console.log("MYPOS", myPos)
-            // console.log("DESTINATION", dest)
+            // // console.log("MYPOS", myPos)
+            // // console.log("DESTINATION", dest)
             
-            path = dijkstra.bidirectional(constantBeliefs.map.mapGraph, myPos, dest);
-            // console.log("PATH", path)
+            // path = dijkstra.bidirectional(constantBeliefs.map.mapGraph, myPos, dest);
+            // // console.log("PATH", path)
 
-            path.shift();
+            // // Remove the starting position
+            // path.shift();
+
+            const path = await findPath({x: beliefs.me.x, y: beliefs.me.y}, {x, y})
             let nextCoordinates;
 
             if (this.stopped) throw ['stopped']; // if stopped then quit
@@ -114,3 +118,5 @@ export class BlindMove extends Plan {
 
     // }
 }
+
+export { BlindMove };
