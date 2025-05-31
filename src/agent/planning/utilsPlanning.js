@@ -1,5 +1,5 @@
 import dijkstra from 'graphology-shortest-path';
-import { constantBeliefs } from "../index.js";
+import { beliefs, constantBeliefs } from "../index.js";
 
 /**
  * Find the shortest path to reach the destination
@@ -7,7 +7,7 @@ import { constantBeliefs } from "../index.js";
  * @param {{x: number, y: number}} destination 
  * @returns 
  */
-const findPath = async (current_pos, destination) => {
+const findBestPath = async (current_pos, destination) => {
     let myPos = Math.floor(current_pos.x) + "-" + Math.floor(current_pos.y);
     let dest = Math.floor(destination.x) + "-" + Math.floor(destination.y);
 
@@ -19,4 +19,19 @@ const findPath = async (current_pos, destination) => {
     return path
 }
 
-export { findPath };
+/**
+ * 
+ * @param {[x: number, y: number]} nextCoordinates 
+ */
+const isTileFree = (nextCoordinates) => {
+    // console.log("CHECKING")
+
+    const res = [...beliefs.otherAgents?.values()]?.flat().some((agent) =>
+        agent.x == nextCoordinates[0] && agent.y == nextCoordinates[1]
+    );
+    // console.log("RES", res)s
+    
+    return !res
+}
+
+export { findBestPath , isTileFree};

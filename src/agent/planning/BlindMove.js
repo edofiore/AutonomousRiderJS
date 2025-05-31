@@ -2,7 +2,7 @@ import { Plan } from "./index.js";
 import dijkstra from 'graphology-shortest-path';
 import { client } from "../../config/index.js";
 import { beliefs, constantBeliefs, GO_TO } from "../index.js";
-import { findPath } from "./utilsPlanning.js";
+import { findBestPath, isTileFree } from "./utilsPlanning.js";
 
 
 class BlindMove extends Plan {
@@ -33,7 +33,7 @@ class BlindMove extends Plan {
             // // Remove the starting position
             // path.shift();
 
-            const path = await findPath({x: beliefs.me.x, y: beliefs.me.y}, {x, y})
+            const path = await findBestPath({x: beliefs.me.x, y: beliefs.me.y}, {x, y})
             let nextCoordinates;
 
             if (this.stopped) throw ['stopped']; // if stopped then quit
@@ -41,9 +41,23 @@ class BlindMove extends Plan {
             for(let nextDest of path){
                 // Check if the agent has reached integer coordinates, if he completed the movement
                 var check = new Promise( res => client.onYou( m => m.x % 1 != 0 || m.y % 1 != 0 ? null : res() ) );
-                nextCoordinates = nextDest.split("-");
+                nextCoordinates = nextDest.split("-").map(Number);
                 
                 // TODO deliver if on a delivery spot
+                
+                // console.log("RESP", isTileFree(nextCoordinates))
+
+                if (!isTileFree(nextCoordinates)) {
+                    console.log(`Tile ${nextCoordinates} is not free.`)
+                    // Wait 1 second
+                    await new Promise(resolve => setTimeout(resolve, 1000));
+
+                    // Re-check after 1 second
+                    if (!isTileFree(nextCoordinates)) {
+                        console.log(`Tile ${nextCoordinates} still not free after waiting. Aborting.`);
+                        throw ['tile blocked']; // This will trigger plan change
+                    }
+                }
 
                 if( nextCoordinates[0] > beliefs.me.x){
                     await client.emitMove('right');
