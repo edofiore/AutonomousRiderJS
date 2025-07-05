@@ -93,6 +93,8 @@ const getMapConfig = (config) => {
         constantBeliefs.config.PARCELS_MAX = config.PARCELS_MAX;
     // constantBeliefs.config.CLOCK = parseInt(config.CLOCK);                      // (50ms are 20frame/s)
 
+    constantBeliefs.config.PDR = config.MOVEMENT_DURATION/(config.PDI*1000);    // number
+
     // console.log("config", config)
 }
 
