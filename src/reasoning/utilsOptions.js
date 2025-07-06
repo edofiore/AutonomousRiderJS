@@ -22,7 +22,7 @@ async function optionsGeneration() {
 
     /**
      * TODO: control the amount of options I'm generating. I'm generating useless options
-     * For example, I'm continuosly generating the same intention even if I'm already achieving that intention 
+     * For example, I'm continuosly generating the same option even if I'm already achieving that intention 
      * 
      * Should I know the intention_queue?
      * 
@@ -44,7 +44,7 @@ async function optionsGeneration() {
                     const best_spot = findNearestDeliverySpot(start_pos);
                     options.push([GO_DELIVER, parseInt(best_spot[0]), parseInt(best_spot[1])]);
                 }
-            } else if(intention_queue[0].predicate[0] == GO_TO || intention_queue[0].predicate[0] == GO_DELIVER && intention_queue[1] == undefined) {
+            } else if((intention_queue[0].predicate[0] == GO_TO || intention_queue[0].predicate[0] == GO_DELIVER) && intention_queue[1] == undefined) {
                 const start_pos = {x: intention_queue[0].predicate[1], y: intention_queue[0].predicate[2]}
                 const best_spot = findFarthestParcelSpawner(start_pos);
                 options.push([GO_TO, parseInt(best_spot[0]), parseInt(best_spot[1])]);
