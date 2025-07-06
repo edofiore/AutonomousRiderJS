@@ -84,7 +84,7 @@ setInterval(() => {
     client.onParcelsSensing( async () => await optionsGeneration() );
     client.onAgentsSensing( async () => await optionsGeneration() );
     client.onYou( async () => await optionsGeneration() );
-    }, [1000]
+    }, 1000
 )
 
 // Function to trigger the agent when parcels are sensed 

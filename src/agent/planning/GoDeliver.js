@@ -10,7 +10,7 @@ class GoDeliver extends Plan {
     
     async execute (go_deliver, x, y) {
         if (this.stopped) throw ['stopped']; // if stopped then quit
-        if (!beliefs.me?.parcelsImCarrying > 0) {
+        if (!(beliefs.me?.parcelsImCarrying > 0)) {
             throw ['Nothing to deliver'];
         }
         if (this.stopped) throw ['stopped']; // if stopped then quit

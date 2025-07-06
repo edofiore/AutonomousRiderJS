@@ -63,7 +63,7 @@ class BlindMove extends Plan {
 
                         beliefs.tmpBlockedTiles = [...beliefs.tmpBlockedTiles, nextDest];
                         
-                        console.log("TMP", tmpBlockedTiles)
+                        console.log("TMP", beliefs.tmpBlockedTiles)
 
                         throw ['tile blocked']; // This will trigger plan change
                         

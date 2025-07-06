@@ -11,13 +11,13 @@ const findBestPath = async (current_pos, destination) => {
     let myPos = Math.floor(current_pos.x) + "-" + Math.floor(current_pos.y);
     let dest = Math.floor(destination.x) + "-" + Math.floor(destination.y);
 
-    let mapGraph = constantBeliefs.map.mapGraph;
+    let mapGraph = constantBeliefs.map.mapGraph.copy();
     if (beliefs.tmpBlockedTiles?.length > 0) {
 
-        for(blockedTile of beliefs.tmpBlockedTiles) {
+        for(let blockedTile of beliefs.tmpBlockedTiles) {
             console.log("BLOCKED TILE", blockedTile)
             console.log("OLD", mapGraph);
-            mapGraph = mapGraph.dropNode(blockedTile);
+            mapGraph.dropNode(blockedTile);
             console.log("NEW", mapGraph);
         }
     }
