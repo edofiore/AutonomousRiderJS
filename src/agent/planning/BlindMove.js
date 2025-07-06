@@ -43,30 +43,46 @@ class BlindMove extends Plan {
                 var check = new Promise( res => client.onYou( m => m.x % 1 != 0 || m.y % 1 != 0 ? null : res() ) );
                 nextCoordinates = nextDest.split("-").map(Number);
                 
-                // TODO deliver if on a delivery spot
-                
-                // console.log("RESP", isTileFree(nextCoordinates))
+                // TODO: deliver if on a delivery spot
 
+                /**
+                 * TODO: check also if the other agent is going in our direction or he's going against us
+                 */
                 if (!isTileFree(nextCoordinates)) {
                     console.log(`Tile ${nextCoordinates} is not free.`)
                     // Wait 1 second
-                    await new Promise(resolve => setTimeout(resolve, 1000));
+                    await new Promise(resolve => setTimeout(resolve, constantBeliefs.config.MOVEMENT_DURATION));
 
                     // Re-check after 1 second
                     if (!isTileFree(nextCoordinates)) {
                         console.log(`Tile ${nextCoordinates} still not free after waiting. Aborting.`);
+
+                        /**
+                         * TODO: temporally delete the tile from the mapGraph. Just for calculate the new path
+                         */
+
+                        beliefs.tmpBlockedTiles = [...beliefs.tmpBlockedTiles, nextDest];
+                        
+                        console.log("TMP", tmpBlockedTiles)
+
                         throw ['tile blocked']; // This will trigger plan change
+                        
                     }
                 }
 
+                var movement_status = false;
                 if( nextCoordinates[0] > beliefs.me.x){
-                    await client.emitMove('right');
+                    movement_status = await client.emitMove('right');
                 }else if(nextCoordinates[0] < beliefs.me.x){
-                    await client.emitMove('left');
+                    movement_status = await client.emitMove('left');
                 }else if( nextCoordinates[1] > beliefs.me.y){
-                    await client.emitMove('up');
+                    movement_status = await client.emitMove('up');
                 }else if(nextCoordinates[1] < beliefs.me.y){
-                    await client.emitMove('down');
+                    movement_status = await client.emitMove('down');
+                }
+
+                if(!movement_status) {
+                    throw ['stopped'];
                 }
 
                 if ( this.stopped ) throw ['stopped']; // if stopped then quit

@@ -258,7 +258,7 @@ const findBestOption = (options, parcels, agent) => {
  * @param {number} movement_steps 
  * @param {Interval | 'infinite'} parcel_decading_interval 
  * @param {Map< string, {id: string, carriedBy?: string, x:number, y:number, reward:number} >} parcels 
- * @returns 
+ * @returns {boolean}
  */
 const swapIntentions = (intention_1, intention_2, agent, movement_duration, movement_steps, parcel_decading_interval, parcels = undefined) => {
     const agent_pos = {x: agent.x, y: agent.y}

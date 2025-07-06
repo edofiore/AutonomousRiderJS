@@ -64,6 +64,7 @@
  * @property {MeAgent} me - The agent's own data
  * @property {Map<string, Parcel>} storedParcels - A map of all known parcels
  * @property {Map<string, Agent[]>} otherAgents - Other agents indexed by ID
+ * @property {*} tmpBlockedTiles - Tiles temporally blocked by other agents
  */
 
 /**

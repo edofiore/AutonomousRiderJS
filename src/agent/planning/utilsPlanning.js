@@ -11,8 +11,23 @@ const findBestPath = async (current_pos, destination) => {
     let myPos = Math.floor(current_pos.x) + "-" + Math.floor(current_pos.y);
     let dest = Math.floor(destination.x) + "-" + Math.floor(destination.y);
 
+    let mapGraph = constantBeliefs.map.mapGraph;
+    if (beliefs.tmpBlockedTiles?.length > 0) {
+
+        for(blockedTile of beliefs.tmpBlockedTiles) {
+            console.log("BLOCKED TILE", blockedTile)
+            console.log("OLD", mapGraph);
+            mapGraph = mapGraph.dropNode(blockedTile);
+            console.log("NEW", mapGraph);
+        }
+    }
+
     // Compute the path
-    const path = dijkstra.bidirectional(constantBeliefs.map.mapGraph, myPos, dest);
+    const path = dijkstra.bidirectional(mapGraph, myPos, dest);
+
+    // TODO: reset blocked tiles?
+    // beliefs.tmpBlockedTiles = []; ???????
+
     // Remove the starting position
     path.shift();
 

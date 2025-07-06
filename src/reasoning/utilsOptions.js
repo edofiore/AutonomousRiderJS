@@ -15,6 +15,9 @@ async function optionsGeneration() {
 
     // For each
     for (const parcel of beliefs.storedParcels.values()) {
+        /**
+         * TODO: use finalReward instead of parcel reward
+         */
         if (!parcel.carriedBy && parcel.reward > 0) {    // TODO: Check if this is necessary, at the moment we store only free parcels
             const new_option = [GO_PICK_UP, parcel.x, parcel.y, parcel.id];
             if (!isIntentionAlreadyQueued(intention_queue, new_option))
