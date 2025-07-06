@@ -40,8 +40,8 @@ class IntentionRevisionRevise extends IntentionRevision {
 
         /**
          * TODO: 
-         * - if the agent is going to pick up a specific parcel, but along his path there is another pack, he must pick up that package;
-         * - the same in the case he's bringing packages and along the path pass over a delivery spot, he must deliver the packages he has
+         * - if the agent is going to pick up a specific parcel, but along his path there is another parcel, he must pick up that parcel;
+         * - the same in the case he's bringing parcels and along the path passes over a delivery spot, he must deliver the parcel he has
          * - Put new intentions as sub_intentions?
          */
 
@@ -73,8 +73,7 @@ class IntentionRevisionRevise extends IntentionRevision {
                      * TODO: Decide if to swap 2 intentions or simply stop the first one  
                      */
                     // Compare if the new intention is better than the first in the queue 
-                    const swap = swapIntentions(this.intention_queue[0], new_intention, beliefs.me, constantBeliefs.config?.MOVEMENT_DURATION, 
-                        constantBeliefs.config.MOVEMENT_STEPS, constantBeliefs.config.PDI, beliefs.storedParcels)
+                    const swap = swapIntentions(this.intention_queue[0], new_intention, beliefs.me, beliefs.storedParcels)
 
                     // If true, put the new intention in first position and shift the rest
                     if(swap) {
@@ -85,8 +84,7 @@ class IntentionRevisionRevise extends IntentionRevision {
                         // console.log("UPDATED QUEUE 4:", this.intention_queue.map(intention => intention.predicate))
                     // Otherwise, if the first in the queue is better, compare the new intention with the second one of the queue
                     } else {
-                        const swap_again = swapIntentions(this.intention_queue[1], new_intention, beliefs.me, constantBeliefs.config.MOVEMENT_DURATION, 
-                        constantBeliefs.config.MOVEMENT_STEPS, constantBeliefs.config.PDI, beliefs.storedParcels)
+                        const swap_again = swapIntentions(this.intention_queue[1], new_intention, beliefs.me, beliefs.storedParcels)
 
                         if (swap_again) {
                             this.intention_queue = await putInTheQueue(1, new_intention, this.intention_queue);

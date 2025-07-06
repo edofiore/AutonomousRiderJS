@@ -32,6 +32,7 @@ const constantBeliefs = {
         PGI: null,  // PARCELS_GENERATION_INTERVAL ('1s', '2s', '5s', '10s')
         PRA: null,  // PARCEL_REWARD_AVG (number)
         PRV: null,  // PARCEL_REWARD_VARIANCE (number)
+        PDR: null,  // PARCEL_DECAY_RATE (number)
         PARCELS_MAX: null   // (number or 'infinite')
     },
     map: {

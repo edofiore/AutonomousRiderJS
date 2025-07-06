@@ -17,6 +17,7 @@
  * @property {number} PRA - PARCEL_REWARD_AVG
  * @property {number} PRV - PARCEL_REWARD_VARIANCE
  * @property {number | 'infinite'} PARCELS_MAX - Maximum number of parcels or 'infinite'
+ * @property {number} PDR - PARCEL_DECAY_RATE
  */
 
 /**
