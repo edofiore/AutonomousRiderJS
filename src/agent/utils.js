@@ -34,21 +34,6 @@ const distance = ( current_pos, target_pos ) => {
     }
 }
 
-// const getTotalReward = (parcels, agent_id) => {
-//     let total_reward = 0;
-//     console.log("PARCELSSSS", parcels)
-    
-//     // TODO: parcels will be a map, so check if we are iterating correctly
-
-//     parcels.forEach((p) => {
-//         if(p.carriedBy == agent_id) {
-//             console.log("SINGLE REWARD", p.reward)
-//             total_reward += p.reward}
-//     })
-
-//     return total_reward;
-// }
-
 /**
  * Find the nearest delivery zone
  * @param {{x:number, y:number}} current_pos - The current position of the agent (could be "me" or some "opponents agent")
@@ -91,25 +76,15 @@ const findFarthestParcelSpawner = (agent) => {
 /**
  * Function to calculate the final reward at the end of a movement
  * @param {number} reward - Total reward the agent will carry
- * @param {number} movement_duration - 
- * @param {number} movement_steps - 
- * @param {Interval | 'infinite'} parcel_decading_interval - 
  * @param {number} distance_to_delivery - Current position of the agent
  * @param {number} [distance_to_parcel = 0] - Optional intermediate target position
  * @returns {number} - The effective reward to do an intention
  */
-const computeFinalReward = (reward, movement_duration, movement_steps, parcel_decading_interval, distance_to_delivery, distance_to_parcel = 0) => {
-
-    // Check if the variable is a number, otherwise convert it
-    // if(!(parcel_decading_interval in Interval) )
-    //     parcel_decading_interval = parseInt(parcel_decading_interval)
-
-    // Calculate the amount of loss of the reward at each agent movement
-    const ratio_time = movement_duration/(parcel_decading_interval*1000); // ms
+const computeFinalReward = (reward, distance_to_delivery, distance_to_parcel = 0) => {
     // Calculate the effective distance of the agent to the final destination, considering also the number of steps for movement
-    const effective_distance = (distance_to_delivery + distance_to_parcel) / movement_steps;
+    const effective_distance = (distance_to_delivery + distance_to_parcel) / constantBeliefs.config.MOVEMENT_STEPS;
     // Compute the final reward
-    const final_reward = reward - (ratio_time * effective_distance);
+    const final_reward = reward - (constantBeliefs.config.PDR * effective_distance);
 
     // console.log("FINAL REWARD", final_reward)
 
@@ -119,21 +94,15 @@ const computeFinalReward = (reward, movement_duration, movement_steps, parcel_de
 /**
  * Get the final reward for a deliver intention
  * @param {number} reward - Parcel reward or total reward
- * @param {number} movement_duration 
- * @param {number} movement_steps 
- * @param {Interval | 'infinite'} parcel_decading_interval 
  * @param {{x:number, y:number}} agent - Current agent position
  * @param {{x:number, y:number}} delivery_pos - Delivery spot position
  * @returns {number} - final_reward
  */
-const getDeliverFinalReward = (reward, movement_duration, movement_steps, parcel_decading_interval, agent, delivery_pos) => {
-    
+const getDeliverFinalReward = (reward, agent, delivery_pos) => {
     // Compute the distance between the agent current position and the delivery spot
     const distance_to_delivery_spot = distance(agent, delivery_pos);
-    // Calculate final rewardt
-    const final_reward = computeFinalReward(
-        reward, movement_duration, movement_steps, parcel_decading_interval, distance_to_delivery_spot
-    );
+    // Calculate final reward
+    const final_reward = computeFinalReward(reward, distance_to_delivery_spot);
     
     return final_reward
 }
@@ -142,15 +111,11 @@ const getDeliverFinalReward = (reward, movement_duration, movement_steps, parcel
  * Get the final reward for a pickup intention
  * @param {number} agent_reward - Total reward agent is carrying
  * @param {number} parcel_reward - Parcel reward 
- * @param {number} movement_duration 
- * @param {number} movement_steps 
- * @param {Interval | 'infinite'} parcel_decading_interval 
  * @param {{x:number, y:number}} agent - Current agent position
  * @param {{x:number, y:number}} parcel_pos - Parcel position to pick up
  * @returns {number} - final_reward
  */
-const getPickupFinalReward = (agent_reward, parcel_reward, movement_duration, movement_steps, parcel_decading_interval, agent, parcel_pos) => {
-
+const getPickupFinalReward = (agent_reward, parcel_reward, agent, parcel_pos) => {
     // Find the nearest delivery spot to the parcel the agent would pick up
     const nearest_delivery = findNearestDeliverySpot(parcel_pos); 
 
@@ -160,7 +125,7 @@ const getPickupFinalReward = (agent_reward, parcel_reward, movement_duration, mo
     const distance_parcel_to_delivery = distance(parcel_pos, nearest_delivery);
     // Calculate final reward
     const final_reward = computeFinalReward(
-        agent_reward + parcel_reward, movement_duration, movement_steps, parcel_decading_interval, distance_agent_to_parcel, distance_parcel_to_delivery
+        agent_reward + parcel_reward, distance_agent_to_parcel, distance_parcel_to_delivery
     );
     
     return final_reward
@@ -170,25 +135,20 @@ const getPickupFinalReward = (agent_reward, parcel_reward, movement_duration, mo
  * Get the final reward of a specified intention
  * @param {string} intention_type - Intention type
  * @param {number} agent_reward - Reward the agent is carrying
- * @param {number} movement_duration 
- * @param {number} movement_steps 
- * @param {numbeInterval | 'infinite'r} parcel_decading_interval 
  * @param {{x:number, y:number}} agent - Current agent position
- * @param {{x:number, y:number}} parcel_pos - Parcel position to pick up
+ * @param {{x:number, y:number}} target_pos - Target position
  * @param {number} [parcel_reward = 0] - Parcel reward 
  * @returns {number} - final_reward
  */
-const getFinalReward = (intention_type, agent_reward, movement_duration, movement_steps, parcel_decading_interval, agent, target_pos, parcel_reward = 0) => {
-    
+const getFinalReward = (intention_type, agent_reward, agent, target_pos, parcel_reward = 0) => {
     let final_reward = 0;
     if(intention_type == GO_PICK_UP)
-        final_reward = getPickupFinalReward(agent_reward, parcel_reward, movement_duration, movement_steps, parcel_decading_interval, agent, target_pos);
+        final_reward = getPickupFinalReward(agent_reward, parcel_reward, agent, target_pos);
     else if (intention_type == GO_DELIVER) 
-        final_reward = getDeliverFinalReward(agent_reward, movement_duration, movement_steps, parcel_decading_interval, agent, target_pos);
+        final_reward = getDeliverFinalReward(agent_reward, agent, target_pos);
 
     return final_reward
 }
-
 
 /**
  * Find the best option to push as intention in the queue
@@ -199,8 +159,6 @@ const getFinalReward = (intention_type, agent_reward, movement_duration, movemen
  */
 const findBestOption = (options, parcels, agent) => {
     let best_option;
-    // let nearest = Number.MAX_VALUE;
-
     let biggest_reward = Number.MIN_VALUE;
 
     if(options.length == 1) {
@@ -210,23 +168,9 @@ const findBestOption = (options, parcels, agent) => {
             if(option[0] == GO_PICK_UP) {
                 const [, x, y, p_id] = option;
                 const agent_pos = {x: agent.x, y: agent.y}
-                // console.log("me", agent)
-                // const current_d = distance({x, y}, agent);
-                // console.log("DISTANCE", current_d)
-                // if (current_d < nearest) {
-                //     best_option = option;
-                //     nearest = current_d;
-                // }
 
                 const parcel = parcels.get(p_id);
-                // const nearest_delivery = findNearestDeliverySpot({x, y});
-                // const final_reward = getFinalReward(
-                //     parcel.reward, MOVEMENT_DURATION, MOVEMENT_STEPS, parseInt(PDI),
-                //     agent, {x, y}, {x:parseInt(nearest_delivery[0]), y:parseInt(nearest_delivery[1])},
-                // );
-
-                const final_reward = getFinalReward(option[0], agent.carriedReward, constantBeliefs.config.MOVEMENT_DURATION, constantBeliefs.config.MOVEMENT_STEPS, parseInt(constantBeliefs.config.PDI), agent_pos, {x, y}, parcel.reward);
-                // console.log("final_reward")
+                const final_reward = getFinalReward(option[0], agent.carriedReward, agent_pos, {x, y}, parcel.reward);
                 
                 if (final_reward > biggest_reward) {
                     best_option = option;
@@ -244,29 +188,19 @@ const findBestOption = (options, parcels, agent) => {
     return best_option
 }
 
-
-/**
- * TODO: consider when PDI is 'infinite'
- */
-
 /**
  * Compare two intentions to decide if swap them
  * @param {[name: string, x: number, y: number, parcel_id: string]} intention_1 
  * @param {[name: string, x: number, y: number, parcel_id: string]} intention_2 
  * @param {{id:string, name:string, x:number, y:number, score:number, parcelsImCarrying:number, carriedReward:number}} agent 
- * @param {number} movement_duration 
- * @param {number} movement_steps 
- * @param {Interval | 'infinite'} parcel_decading_interval 
  * @param {Map< string, {id: string, carriedBy?: string, x:number, y:number, reward:number} >} parcels 
- * @returns 
+ * @returns {boolean} - True if intentions should be swapped
  */
-const swapIntentions = (intention_1, intention_2, agent, movement_duration, movement_steps, parcel_decading_interval, parcels = undefined) => {
+const swapIntentions = (intention_1, intention_2, agent, parcels = undefined) => {
     const agent_pos = {x: agent.x, y: agent.y}
     let target_pos_1;
-    // let parcel_pos_1;
     let reward_parcel_1;
     let target_pos_2;
-    // let parcel_pos_2;
     let reward_parcel_2;
     
     // If the first intention is "go_deliver"
@@ -288,10 +222,8 @@ const swapIntentions = (intention_1, intention_2, agent, movement_duration, move
     }
 
     // Get the final rewards for the two intentions
-    const intention_1_final_reward = getFinalReward(intention_1.predicate[0], agent.carriedReward, movement_duration, 
-        movement_steps, parcel_decading_interval, agent_pos, target_pos_1, reward_parcel_1);
-    const intention_2_final_reward = getFinalReward(intention_2.predicate[0], agent.carriedReward, movement_duration, 
-        movement_steps, parcel_decading_interval, agent_pos, target_pos_2, reward_parcel_2);
+    const intention_1_final_reward = getFinalReward(intention_1.predicate[0], agent.carriedReward, agent_pos, target_pos_1, reward_parcel_1);
+    const intention_2_final_reward = getFinalReward(intention_2.predicate[0], agent.carriedReward, agent_pos, target_pos_2, reward_parcel_2);
 
     // Return TRUE if the second reward is bigger, otherwise FALSE
     return (intention_2_final_reward > intention_1_final_reward)
@@ -307,11 +239,6 @@ const putInTheQueue = async (index, new_intention, queue) => {
         await queue[index].stop();
         queue[index] = new_intention;
     }
-    
-    // setTimeout(() => {
-    //     queue[0].stop();
-    // }, 100)
-
 
     return queue;
 }

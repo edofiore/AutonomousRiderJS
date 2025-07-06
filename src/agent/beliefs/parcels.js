@@ -22,7 +22,7 @@ const updateParcelsPerceived = async ( perceivedParcels ) => {
         }
     }
     
-    // Remove parcels that are nomore perceived
+    // Remove parcels that are no more perceived
     for ( const p of beliefs.storedParcels.values() ) {
         if ( perceivedParcels.map( p => p.id ).find( id => id == p.id ) == undefined ) {
             beliefs.storedParcels.delete( p.id );
