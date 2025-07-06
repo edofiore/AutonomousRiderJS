@@ -19,6 +19,9 @@ import { beliefs } from "./index.js"
  */
 const updateInfoAgent = ({id, name, x, y, score}) => {
 
+    if ( x % 1 != 0 || y % 1 != 0 ) // skip intermediate values (0.6 or 0.4)
+        return;
+
     console.log("Updating info about me (\%s)...", name)
 
     beliefs.me.id = id
@@ -33,7 +36,7 @@ const updateInfoAgent = ({id, name, x, y, score}) => {
 
 /**
  * Update info about parcels the agent is carrying
- * @param {*} perceivedParcels 
+ * @param {Parcel[]} perceivedParcels 
  */
 const updateCarryingParcels = async (perceivedParcels) => {
 

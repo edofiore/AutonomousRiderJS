@@ -15,6 +15,7 @@ const beliefs = {
     },
     storedParcels: new Map(),
     otherAgents: new Map(),
+    tmpBlockedTiles: [],
 }
 
 

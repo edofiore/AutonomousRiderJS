@@ -2,10 +2,11 @@ import { Plan } from "./index.js";
 import dijkstra from 'graphology-shortest-path';
 import { client } from "../../config/index.js";
 import { beliefs, constantBeliefs, GO_TO } from "../index.js";
+import { findBestPath, isTileFree } from "./utilsPlanning.js";
 
 
-export let path = [];
-export class BlindMove extends Plan {
+class BlindMove extends Plan {
+
     static isApplicableTo ( go_to, x, y ) {
         return go_to == GO_TO;
     }
@@ -20,16 +21,19 @@ export class BlindMove extends Plan {
 
             if (this.stopped) throw ['stopped']; // if stopped then quit
 
-            let myPos = Math.floor(beliefs.me.x) + "-" + Math.floor(beliefs.me.y);
-            let dest = Math.floor(x) + "-" + Math.floor(y);
+            // let myPos = Math.floor(beliefs.me.x) + "-" + Math.floor(beliefs.me.y);
+            // let dest = Math.floor(x) + "-" + Math.floor(y);
 
-            // console.log("MYPOS", myPos)
-            // console.log("DESTINATION", dest)
+            // // console.log("MYPOS", myPos)
+            // // console.log("DESTINATION", dest)
             
-            path = dijkstra.bidirectional(constantBeliefs.map.mapGraph, myPos, dest);
-            // console.log("PATH", path)
+            // path = dijkstra.bidirectional(constantBeliefs.map.mapGraph, myPos, dest);
+            // // console.log("PATH", path)
 
-            path.shift();
+            // // Remove the starting position
+            // path.shift();
+
+            const path = await findBestPath({x: beliefs.me.x, y: beliefs.me.y}, {x, y})
             let nextCoordinates;
 
             if (this.stopped) throw ['stopped']; // if stopped then quit
@@ -37,18 +41,48 @@ export class BlindMove extends Plan {
             for(let nextDest of path){
                 // Check if the agent has reached integer coordinates, if he completed the movement
                 var check = new Promise( res => client.onYou( m => m.x % 1 != 0 || m.y % 1 != 0 ? null : res() ) );
-                nextCoordinates = nextDest.split("-");
+                nextCoordinates = nextDest.split("-").map(Number);
                 
-                // TODO deliver if on a delivery spot
+                // TODO: deliver if on a delivery spot
 
+                /**
+                 * TODO: check also if the other agent is going in our direction or he's going against us
+                 */
+                if (!isTileFree(nextCoordinates)) {
+                    console.log(`Tile ${nextCoordinates} is not free.`)
+                    // Wait 1 second
+                    await new Promise(resolve => setTimeout(resolve, constantBeliefs.config.MOVEMENT_DURATION));
+
+                    // Re-check after 1 second
+                    if (!isTileFree(nextCoordinates)) {
+                        console.log(`Tile ${nextCoordinates} still not free after waiting. Aborting.`);
+
+                        /**
+                         * TODO: temporally delete the tile from the mapGraph. Just for calculate the new path
+                         */
+
+                        beliefs.tmpBlockedTiles = [...beliefs.tmpBlockedTiles, nextDest];
+                        
+                        console.log("TMP", tmpBlockedTiles)
+
+                        throw ['tile blocked']; // This will trigger plan change
+                        
+                    }
+                }
+
+                var movement_status = false;
                 if( nextCoordinates[0] > beliefs.me.x){
-                    await client.emitMove('right');
+                    movement_status = await client.emitMove('right');
                 }else if(nextCoordinates[0] < beliefs.me.x){
-                    await client.emitMove('left');
+                    movement_status = await client.emitMove('left');
                 }else if( nextCoordinates[1] > beliefs.me.y){
-                    await client.emitMove('up');
+                    movement_status = await client.emitMove('up');
                 }else if(nextCoordinates[1] < beliefs.me.y){
-                    await client.emitMove('down');
+                    movement_status = await client.emitMove('down');
+                }
+
+                if(!movement_status) {
+                    throw ['stopped'];
                 }
 
                 if ( this.stopped ) throw ['stopped']; // if stopped then quit
@@ -114,3 +148,5 @@ export class BlindMove extends Plan {
 
     // }
 }
+
+export { BlindMove };

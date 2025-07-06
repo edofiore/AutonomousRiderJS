@@ -243,6 +243,10 @@ const putInTheQueue = async (index, new_intention, queue) => {
     return queue;
 }
 
+const isIntentionAlreadyQueued = (intention_queue, predicate) => {
+    return intention_queue.find( (i) => i.predicate.join(' ') == predicate.join(' ') );
+}
+
 export { GO_TO, GO_PICK_UP, GO_DELIVER, BLOCKED_TILES, WALKABLE_SPAWNING_TILES, DELIVERABLE_TILES, WALKABLE_TILES, 
     distance, computeFinalReward, getPickupFinalReward, getDeliverFinalReward, getFinalReward, 
-    findNearestDeliverySpot, findFarthestParcelSpawner, findBestOption, swapIntentions, putInTheQueue };
+    findNearestDeliverySpot, findFarthestParcelSpawner, findBestOption, swapIntentions, putInTheQueue, isIntentionAlreadyQueued };

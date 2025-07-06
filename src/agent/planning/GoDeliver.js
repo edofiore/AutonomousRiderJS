@@ -3,7 +3,7 @@ import { client } from "../../config/index.js";
 import { GO_DELIVER } from "../utils.js";
 import { beliefs } from "../index.js";
 
-export class GoDeliver extends Plan {
+class GoDeliver extends Plan {
     static isApplicableTo (go_deliver, x, y, id) {
             return go_deliver == GO_DELIVER;
     }
@@ -45,3 +45,5 @@ export class GoDeliver extends Plan {
     //     return true;    
     // } 
 }
+
+export { GoDeliver };
