@@ -2,151 +2,182 @@ import { Plan } from "./index.js";
 import dijkstra from 'graphology-shortest-path';
 import { client } from "../../config/index.js";
 import { beliefs, constantBeliefs, GO_TO } from "../index.js";
-import { findBestPath, isTileFree } from "./utilsPlanning.js";
-
+import { findBestPath, isTileFree, addTemporaryBlockedTile, clearOldBlockedTiles } from "./utilsPlanning.js";
 
 class BlindMove extends Plan {
 
-    static isApplicableTo ( go_to, x, y ) {
+    static isApplicableTo(go_to, x, y) {
         return go_to == GO_TO;
     }
 
-    
-    async execute (go_to, x, y) {
-        console.log("Executing go_to...")
+    async execute(go_to, x, y) {
+        console.log("Executing go_to...");
 
-        // const me = beliefs.me;
+        if (beliefs.me.x != x || beliefs.me.y != y) {
+            if (this.stopped) throw ['stopped'];
 
-        if ( beliefs.me.x != x || beliefs.me.y != y ) {
+            let path = null;
+            let replanAttempts = 0;
+            const maxReplanAttempts = 3;
 
-            if (this.stopped) throw ['stopped']; // if stopped then quit
+            // Clear old blocked tiles that might no longer be blocked
+            clearOldBlockedTiles();
 
-            // let myPos = Math.floor(beliefs.me.x) + "-" + Math.floor(beliefs.me.y);
-            // let dest = Math.floor(x) + "-" + Math.floor(y);
+            // Initial path planning
+            try {
+                path = await findBestPath({x: beliefs.me.x, y: beliefs.me.y}, {x, y});
+                console.log("Initial path planned:", path);
+            } catch (error) {
+                console.log("No path found to destination");
+                throw ['no path available'];
+            }
 
-            // // console.log("MYPOS", myPos)
-            // // console.log("DESTINATION", dest)
-            
-            // path = dijkstra.bidirectional(constantBeliefs.map.mapGraph, myPos, dest);
-            // // console.log("PATH", path)
+            if (this.stopped) throw ['stopped'];
 
-            // // Remove the starting position
-            // path.shift();
+            // Execute path with replanning on blocked tiles
+            for (let i = 0; i < path.length; i++) {
+                if (this.stopped) throw ['stopped'];
 
-            const path = await findBestPath({x: beliefs.me.x, y: beliefs.me.y}, {x, y})
-            let nextCoordinates;
+                const nextDest = path[i];
+                const nextCoordinates = nextDest.split("-").map(Number);
 
-            if (this.stopped) throw ['stopped']; // if stopped then quit
+                // Check if the agent has reached integer coordinates
+                const check = new Promise(res => 
+                    client.onYou(m => m.x % 1 != 0 || m.y % 1 != 0 ? null : res())
+                );
 
-            for(let nextDest of path){
-                // Check if the agent has reached integer coordinates, if he completed the movement
-                var check = new Promise( res => client.onYou( m => m.x % 1 != 0 || m.y % 1 != 0 ? null : res() ) );
-                nextCoordinates = nextDest.split("-").map(Number);
-                
-                // TODO: deliver if on a delivery spot
-
-                /**
-                 * TODO: check also if the other agent is going in our direction or he's going against us
-                 */
+                // Check if tile is free
                 if (!isTileFree(nextCoordinates)) {
-                    console.log(`Tile ${nextCoordinates} is not free.`)
-                    // Wait 1 second
+                    console.log(`Tile ${nextCoordinates} is blocked. Attempting to replan...`);
+
+                    // Add the blocked tile to temporary blocked tiles
+                    addTemporaryBlockedTile(nextDest);
+
+                    // Wait a moment to see if the blockage clears
                     await new Promise(resolve => setTimeout(resolve, constantBeliefs.config.MOVEMENT_DURATION));
 
-                    // Re-check after 1 second
-                    if (!isTileFree(nextCoordinates)) {
-                        console.log(`Tile ${nextCoordinates} still not free after waiting. Aborting.`);
+                    // Check again if tile is now free
+                    if (isTileFree(nextCoordinates)) {
+                        console.log(`Tile ${nextCoordinates} is now free, continuing...`);
+                    } else {
+                        // Tile is still blocked, need to replan
+                        console.log(`Tile ${nextCoordinates} still blocked. Replanning path...`);
 
-                        /**
-                         * TODO: temporally delete the tile from the mapGraph. Just for calculate the new path
-                         */
+                        if (replanAttempts >= maxReplanAttempts) {
+                            console.log("Max replan attempts reached. Path may be impossible.");
+                            throw ['path blocked - max attempts reached'];
+                        }
 
-                        beliefs.tmpBlockedTiles = [...beliefs.tmpBlockedTiles, nextDest];
-                        
-                        console.log("TMP", beliefs.tmpBlockedTiles)
+                        replanAttempts++;
 
-                        throw ['tile blocked']; // This will trigger plan change
-                        
+                        try {
+                            // Replan from current position to destination
+                            const currentPos = {x: beliefs.me.x, y: beliefs.me.y};
+                            const newPath = await findBestPath(currentPos, {x, y});
+                            
+                            console.log(`Replanned path (attempt ${replanAttempts}):`, newPath);
+                            
+                            // Update the path and restart from current position
+                            path = newPath;
+                            i = -1; // Reset loop counter (will be incremented to 0)
+                            continue;
+
+                        } catch (replanError) {
+                            console.log("Replanning failed:", replanError);
+                            
+                            // If we can't find any path, wait longer and try one more time
+                            if (replanAttempts < maxReplanAttempts) {
+                                await new Promise(resolve => 
+                                    setTimeout(resolve, constantBeliefs.config.MOVEMENT_DURATION * 3)
+                                );
+                                
+                                // Try to clear some blocked tiles and replan
+                                this.clearSomeBlockedTiles();
+                                
+                                try {
+                                    const currentPos = {x: beliefs.me.x, y: beliefs.me.y};
+                                    const retryPath = await findBestPath(currentPos, {x, y});
+                                    path = retryPath;
+                                    i = -1;
+                                    replanAttempts++;
+                                    continue;
+                                } catch (finalError) {
+                                    console.log("Final replan attempt failed");
+                                    throw ['no alternative path found'];
+                                }
+                            } else {
+                                throw ['replanning failed - no alternative path'];
+                            }
+                        }
                     }
                 }
 
-                var movement_status = false;
-                if( nextCoordinates[0] > beliefs.me.x){
+                // Execute movement
+                let movement_status = false;
+                if (nextCoordinates[0] > beliefs.me.x) {
                     movement_status = await client.emitMove('right');
-                }else if(nextCoordinates[0] < beliefs.me.x){
+                } else if (nextCoordinates[0] < beliefs.me.x) {
                     movement_status = await client.emitMove('left');
-                }else if( nextCoordinates[1] > beliefs.me.y){
+                } else if (nextCoordinates[1] > beliefs.me.y) {
                     movement_status = await client.emitMove('up');
-                }else if(nextCoordinates[1] < beliefs.me.y){
+                } else if (nextCoordinates[1] < beliefs.me.y) {
                     movement_status = await client.emitMove('down');
                 }
 
-                if(!movement_status) {
-                    throw ['stopped'];
+                if (!movement_status) {
+                    console.log("Movement failed, possibly due to collision");
+                    
+                    // Add current tile as blocked and try to replan
+                    addTemporaryBlockedTile(nextDest);
+                    
+                    if (replanAttempts < maxReplanAttempts) {
+                        try {
+                            const currentPos = {x: beliefs.me.x, y: beliefs.me.y};
+                            const newPath = await findBestPath(currentPos, {x, y});
+                            path = newPath;
+                            i = -1;
+                            replanAttempts++;
+                            continue;
+                        } catch (error) {
+                            throw ['movement failed and replanning unsuccessful'];
+                        }
+                    } else {
+                        throw ['movement failed'];
+                    }
                 }
 
-                if ( this.stopped ) throw ['stopped']; // if stopped then quit
+                if (this.stopped) throw ['stopped'];
 
                 await check;
 
-                if ( this.stopped ) throw ['stopped']; // if stopped then quit
+                if (this.stopped) throw ['stopped'];
+
+                // Reset replan attempts on successful movement
+                replanAttempts = 0;
             }
         }
 
-        if ( this.stopped ) throw ['stopped']; // if stopped then quit
+        if (this.stopped) throw ['stopped'];
 
         return true;
     }
 
-    // async execute ( go_to, x, y ) {
-
-    //     while ( me.x != x || me.y != y ) {
-
-    //         if ( this.stopped ) throw ['stopped']; // if stopped then quit
-
-    //         let moved_horizontally;
-    //         let moved_vertically;
-            
-    //         // this.log('me', me, 'xy', x, y);
-
-    //         if ( x > me.x )
-    //             moved_horizontally = await client.emitMove('right')
-    //             // status_x = await this.subIntention( 'go_to', {x: me.x+1, y: me.y} );
-    //         else if ( x < me.x )
-    //             moved_horizontally = await client.emitMove('left')
-    //             // status_x = await this.subIntention( 'go_to', {x: me.x-1, y: me.y} );
-
-    //         if (moved_horizontally) {
-    //             me.x = moved_horizontally.x;
-    //             me.y = moved_horizontally.y;
-    //         }
-
-    //         if ( this.stopped ) throw ['stopped']; // if stopped then quit
-
-    //         if ( y > me.y )
-    //             moved_vertically = await client.emitMove('up')
-    //             // status_x = await this.subIntention( 'go_to', {x: me.x, y: me.y+1} );
-    //         else if ( y < me.y )
-    //             moved_vertically = await client.emitMove('down')
-    //             // status_x = await this.subIntention( 'go_to', {x: me.x, y: me.y-1} );
-
-    //         if (moved_vertically) {
-    //             me.x = moved_vertically.x;
-    //             me.y = moved_vertically.y;
-    //         }
-            
-    //         if ( ! moved_horizontally && ! moved_vertically) {
-    //             this.log('stucked');
-    //             throw 'stucked';
-    //         } else if ( me.x == x && me.y == y ) {
-    //             // this.log('target reached');
-    //         }
-            
-    //     }
-
-    //     return true;
-
-    // }
+    /**
+     * Clear some blocked tiles that might be old or no longer relevant
+     */
+    clearSomeBlockedTiles() {
+        const currentTime = Date.now();
+        const maxAge = constantBeliefs.config.MOVEMENT_DURATION * 10; // 10 movement cycles
+        
+        beliefs.tmpBlockedTiles = beliefs.tmpBlockedTiles.filter(blockedTile => {
+            if (typeof blockedTile === 'object' && blockedTile.timestamp) {
+                return currentTime - blockedTile.timestamp < maxAge;
+            }
+            return false; // Remove tiles without timestamp
+        });
+        
+        console.log("Cleared old blocked tiles. Remaining:", beliefs.tmpBlockedTiles.length);
+    }
 }
 
 export { BlindMove };

@@ -1,11 +1,12 @@
-import { IntentionRevisionQueue, IntentionRevisionReplace, IntentionRevisionRevise } from "./index.js";
+import { IntentionRevisionQueue, IntentionRevisionReplace, IntentionRevisionRevise, IntentionRevisionReviseEnhanced } from "./index.js";
 
 class Agent {
 
     constructor () {
         // this.intentionRevision = new IntentionRevisionQueue();
         // this.intentionRevision = new IntentionRevisionReplace();
-        this.intentionRevision = new IntentionRevisionRevise();
+        // this.intentionRevision = new IntentionRevisionRevise();
+        this.intentionRevision = new IntentionRevisionReviseEnhanced();
     }
 
     async start () {
