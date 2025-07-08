@@ -14,7 +14,7 @@ class BlindMove extends Plan {
         console.log("Executing go_to...");
 
         if (beliefs.me.x != x || beliefs.me.y != y) {
-            if (this.stopped) throw ['stopped'];
+            if (this.stopped) throw ['stopped'];    // if stopped then quit
 
             let path = null;
             let replanAttempts = 0;
@@ -25,7 +25,7 @@ class BlindMove extends Plan {
 
             // Initial path planning
             try {
-                path = await findBestPath({x: beliefs.me.x, y: beliefs.me.y}, {x, y});
+                path = await findBestPath({x: beliefs.me.x, y: beliefs.me.y}, {x, y}, true);
                 console.log("Initial path planned:", path);
             } catch (error) {
                 console.log("No path found to destination");
@@ -76,6 +76,7 @@ class BlindMove extends Plan {
                             const newPath = await findBestPath(currentPos, {x, y});
                             
                             console.log(`Replanned path (attempt ${replanAttempts}):`, newPath);
+                            console.log(`---------------------NNNNEWWWWWW---------------------------\n`, newPath);
                             
                             // Update the path and restart from current position
                             path = newPath;
@@ -92,13 +93,14 @@ class BlindMove extends Plan {
                                 );
                                 
                                 // Try to clear some blocked tiles and replan
-                                this.clearSomeBlockedTiles();
+                                // this.clearSomeBlockedTiles();
+                                this.clearOldBlockedTiles();
                                 
                                 try {
                                     const currentPos = {x: beliefs.me.x, y: beliefs.me.y};
                                     const retryPath = await findBestPath(currentPos, {x, y});
                                     path = retryPath;
-                                    i = -1;
+                                    i = -1; // Reset loop counter (will be incremented to 0)
                                     replanAttempts++;
                                     continue;
                                 } catch (finalError) {
@@ -135,7 +137,7 @@ class BlindMove extends Plan {
                             const currentPos = {x: beliefs.me.x, y: beliefs.me.y};
                             const newPath = await findBestPath(currentPos, {x, y});
                             path = newPath;
-                            i = -1;
+                            i = -1;  // Reset loop counter (will be incremented to 0)
                             replanAttempts++;
                             continue;
                         } catch (error) {
@@ -165,19 +167,19 @@ class BlindMove extends Plan {
     /**
      * Clear some blocked tiles that might be old or no longer relevant
      */
-    clearSomeBlockedTiles() {
-        const currentTime = Date.now();
-        const maxAge = constantBeliefs.config.MOVEMENT_DURATION * 10; // 10 movement cycles
+    // clearSomeBlockedTiles() {
+    //     const currentTime = Date.now();
+    //     const maxAge = constantBeliefs.config.MOVEMENT_DURATION * 3; // movement cycles
         
-        beliefs.tmpBlockedTiles = beliefs.tmpBlockedTiles.filter(blockedTile => {
-            if (typeof blockedTile === 'object' && blockedTile.timestamp) {
-                return currentTime - blockedTile.timestamp < maxAge;
-            }
-            return false; // Remove tiles without timestamp
-        });
+    //     beliefs.tmpBlockedTiles = beliefs.tmpBlockedTiles.filter(blockedTile => {
+    //         if (typeof blockedTile === 'object' && blockedTile.timestamp) {
+    //             return currentTime - blockedTile.timestamp < maxAge;
+    //         }
+    //         return false; // Remove tiles without timestamp
+    //     });
         
-        console.log("Cleared old blocked tiles. Remaining:", beliefs.tmpBlockedTiles.length);
-    }
+    //     console.log("Cleared old blocked tiles. Remaining:", beliefs.tmpBlockedTiles.length);
+    // }
 }
 
 export { BlindMove };

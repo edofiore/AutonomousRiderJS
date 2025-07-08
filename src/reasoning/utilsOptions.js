@@ -83,8 +83,10 @@ async function optionsGeneration() {
     // Filter the options from the ones already queued as intentions
     // const filtered_options = options.filter(option => isIntentionAlreadyQueued(intention_queue, option))
     // Find the best option
-    const best_option = findBestOption(options, beliefs.storedParcels, beliefs.me);
-
+    let best_option = undefined;
+    if(options.length > 0) {
+        best_option = findBestOption(options, beliefs.storedParcels, beliefs.me);
+    }
 
     /**
      * Best option is selected

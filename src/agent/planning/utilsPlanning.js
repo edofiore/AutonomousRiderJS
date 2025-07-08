@@ -20,16 +20,20 @@ const addTemporaryBlockedTile = (tileId) => {
     
     if (existingIndex !== -1) {
         // Update existing entry
-        if (typeof beliefs.tmpBlockedTiles[existingIndex] === 'string') {
-            beliefs.tmpBlockedTiles[existingIndex] = {
-                tile: tileId,
-                timestamp: currentTime,
-                attempts: 1
-            };
-        } else {
-            beliefs.tmpBlockedTiles[existingIndex].timestamp = currentTime;
-            beliefs.tmpBlockedTiles[existingIndex].attempts++;
-        }
+        // if (typeof beliefs.tmpBlockedTiles[existingIndex] === 'string') {
+        //     beliefs.tmpBlockedTiles[existingIndex] = {
+        //         tile: tileId,
+        //         timestamp: currentTime,
+        //         attempts: 1
+        //     };
+        // } else {
+        //     beliefs.tmpBlockedTiles[existingIndex].timestamp = currentTime;
+        //     beliefs.tmpBlockedTiles[existingIndex].attempts++;
+        // }
+
+        beliefs.tmpBlockedTiles[existingIndex].timestamp = currentTime;
+        beliefs.tmpBlockedTiles[existingIndex].attempts++;
+        
     } else {
         // Add new entry
         beliefs.tmpBlockedTiles.push({
@@ -47,16 +51,16 @@ const addTemporaryBlockedTile = (tileId) => {
  */
 const clearOldBlockedTiles = () => {
     const currentTime = Date.now();
-    const maxAge = constantBeliefs.config.MOVEMENT_DURATION * 20; // 20 movement cycles
+    const maxAge = constantBeliefs.config.MOVEMENT_DURATION * 3; // movement cycles
     const maxAttempts = 5;
     
     const originalLength = beliefs.tmpBlockedTiles.length;
     
     beliefs.tmpBlockedTiles = beliefs.tmpBlockedTiles.filter(item => {
-        if (typeof item === 'string') {
-            // Old format, remove after some time
-            return false;
-        }
+        // if (typeof item === 'string') {
+        //     // Old format, remove after some time
+        //     return false;
+        // }
         
         const age = currentTime - item.timestamp;
         const tooOld = age > maxAge;
@@ -121,14 +125,14 @@ const findBestPath = async (current_pos, destination, allowTemporaryBlocked = fa
     // Compute the path
     const path = dijkstra.bidirectional(mapGraph, myPos, dest);
     
-    if (!path || path.length === 0) {
-        // If no path found and we were excluding blocked tiles, try including them
-        if (!allowTemporaryBlocked && beliefs.tmpBlockedTiles?.length > 0) {
-            console.log("No path found excluding blocked tiles, trying with blocked tiles included...");
-            return findBestPath(current_pos, destination, true);
-        }
-        throw new Error(`No path found from ${myPos} to ${dest}`);
-    }
+    // if (!path || path.length === 0) {
+    //     // If no path found and we were excluding blocked tiles, try including them
+    //     if (!allowTemporaryBlocked && beliefs.tmpBlockedTiles?.length > 0) {
+    //         console.log("No path found excluding blocked tiles, trying with blocked tiles included...");
+    //         return findBestPath(current_pos, destination, true);
+    //     }
+    //     throw new Error(`No path found from ${myPos} to ${dest}`);
+    // }
 
     // Remove the starting position from the path
     path.shift();
@@ -173,7 +177,8 @@ const findAlternativePath = async (current_pos, destination, avoidTile) => {
 const isTileFree = (nextCoordinates) => {
     // Check if any other agent is currently on this tile
     const isOccupied = [...beliefs.otherAgents?.values()]?.flat().some((agent) =>
-        Math.floor(agent.x) === nextCoordinates[0] && Math.floor(agent.y) === nextCoordinates[1]
+        (agent.x === nextCoordinates[0] && agent.y === nextCoordinates[1])
+        // && (Math.floor(beliefs.me.x) === nextCoordinates[0] && Math.floor(beliefs.me.y) === nextCoordinates[1])
     );
     
     return !isOccupied;

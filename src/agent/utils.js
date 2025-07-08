@@ -158,6 +158,7 @@ const getFinalReward = (intention_type, agent_reward, agent, target_pos, parcel_
  * @returns {[string, number, number, string]} - Best option
  */
 const findBestOption = (options, parcels, agent) => {
+    // console.log("Evaluating best option...")
     let best_option;
     let biggest_reward = Number.MIN_VALUE;
 

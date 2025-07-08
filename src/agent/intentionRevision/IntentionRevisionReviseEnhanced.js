@@ -22,23 +22,23 @@ class IntentionRevisionReviseEnhanced extends IntentionRevision {
         const new_intention = new Intention(this, predicate);
 
         // Enhanced validation - check if destination is reachable
-        if (predicate[0] === GO_TO || predicate[0] === GO_PICK_UP || predicate[0] === GO_DELIVER) {
-            const targetPos = { x: predicate[1], y: predicate[2] };
-            const currentPos = { x: beliefs.me.x, y: beliefs.me.y };
+        // if (predicate[0] === GO_TO || predicate[0] === GO_PICK_UP || predicate[0] === GO_DELIVER) {
+        //     const targetPos = { x: predicate[1], y: predicate[2] };
+        //     const currentPos = { x: beliefs.me.x, y: beliefs.me.y };
             
-            const isReachable = await isDestinationReachable(currentPos, targetPos);
-            if (!isReachable) {
-                console.log(`Skipping intention ${predicate} - destination not reachable`);
-                return;
-            }
-        }
+        //     const isReachable = await isDestinationReachable(currentPos, targetPos);
+        //     if (!isReachable) {
+        //         console.log(`Skipping intention ${predicate} - destination not reachable`);
+        //         return;
+        //     }
+        // }
 
         // Check for recent failures of similar intentions
-        const intentionKey = this.getIntentionKey(predicate);
-        if (this.shouldSkipDueToRecentFailures(intentionKey)) {
-            console.log(`Skipping intention due to recent failures: ${intentionKey}`);
-            return;
-        }
+        // const intentionKey = this.getIntentionKey(predicate);
+        // if (this.shouldSkipDueToRecentFailures(intentionKey)) {
+        //     console.log(`Skipping intention due to recent failures: ${intentionKey}`);
+        //     return;
+        // }
 
         if (this.intention_queue[0]) {
             // Enhanced decision making for intention management
@@ -291,18 +291,18 @@ class IntentionRevisionReviseEnhanced extends IntentionRevision {
                 } catch (error) {
                     console.log('Failed intention:', intention.predicate, 'Error:', error);
                     
-                    // Record the failure
-                    this.recordIntentionFailure(intention.predicate, error);
+                    // // Record the failure
+                    // this.recordIntentionFailure(intention.predicate, error);
                     
-                    // Determine if we should retry or abandon
-                    if (this.shouldRetryIntention(intention, error)) {
-                        console.log('Retrying intention after brief delay');
-                        // Add some delay before retry
-                        await new Promise(resolve => 
-                            setTimeout(resolve, constantBeliefs.config.MOVEMENT_DURATION * 2)
-                        );
-                        continue; // Don't remove from queue, try again
-                    }
+                    // // Determine if we should retry or abandon
+                    // if (this.shouldRetryIntention(intention, error)) {
+                    //     console.log('Retrying intention after brief delay');
+                    //     // Add some delay before retry
+                    //     await new Promise(resolve => 
+                    //         setTimeout(resolve, constantBeliefs.config.MOVEMENT_DURATION * 2)
+                    //     );
+                    //     continue; // Don't remove from queue, try again
+                    // }
                 }
 
                 // Remove completed/failed intention from queue
