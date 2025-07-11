@@ -86,8 +86,6 @@ const computeFinalReward = (reward, distance_to_delivery, distance_to_parcel = 0
     // Compute the final reward
     const final_reward = reward - (constantBeliefs.config.PDR * effective_distance);
 
-    // console.log("FINAL REWARD", final_reward)
-
     return final_reward
 }
 
@@ -146,7 +144,7 @@ const getFinalReward = (intention_type, agent_reward, agent, target_pos, parcel_
         final_reward = getPickupFinalReward(agent_reward, parcel_reward, agent, target_pos);
     else if (intention_type == GO_DELIVER) 
         final_reward = getDeliverFinalReward(agent_reward, agent, target_pos);
-
+    console.log("Final reward for intention", intention_type, "is", final_reward);
     return final_reward
 }
 
@@ -161,30 +159,29 @@ const findBestOption = (options, parcels, agent) => {
     // console.log("Evaluating best option...")
     let best_option;
     let biggest_reward = Number.MIN_VALUE;
+    let final_reward;
 
-    if(options.length == 1) {
-        best_option = options[0];
-    } else {
-        for (const option of options) {
-            if(option[0] == GO_PICK_UP) {
-                const [, x, y, p_id] = option;
-                const agent_pos = {x: agent.x, y: agent.y}
+    for (const option of options) {
+        if(option[0] == GO_PICK_UP) {
+            const [, x, y, p_id] = option;
+            const agent_pos = {x: agent.x, y: agent.y}
 
-                const parcel = parcels.get(p_id);
-                const final_reward = getFinalReward(option[0], agent.carriedReward, agent_pos, {x, y}, parcel.reward);
-                
-                if (final_reward > biggest_reward) {
-                    best_option = option;
-                    biggest_reward = final_reward;
-                }
-
-            } else if (option[0] == GO_DELIVER) {
+            const parcel = parcels.get(p_id);
+            final_reward = getFinalReward(option[0], agent.carriedReward, agent_pos, {x, y}, parcel.reward);
+            
+            if (final_reward > biggest_reward) {
                 best_option = option;
-            } else if (option[0] == GO_TO) {
-                best_option = option;
+                biggest_reward = final_reward;
             }
+
+        } else if (option[0] == GO_DELIVER) {
+            best_option = option;
+        } else if (option[0] == GO_TO) {
+            best_option = option;
         }
-    } 
+    }
+
+    console.log("Best option found:", best_option, "with reward:", final_reward, "length was", options.length);
 
     return best_option
 }
@@ -248,6 +245,10 @@ const isIntentionAlreadyQueued = (intention_queue, predicate) => {
     return intention_queue.find( (i) => i.predicate.join(' ') == predicate.join(' ') );
 }
 
+const getRewardAtDestination = (initial_reward, starting_pos, destination, n_parcels = 1) => {
+    return initial_reward - n_parcels * (constantBeliefs.config.PDR * distance(starting_pos, destination));
+}
+
 export { GO_TO, GO_PICK_UP, GO_DELIVER, BLOCKED_TILES, WALKABLE_SPAWNING_TILES, DELIVERABLE_TILES, WALKABLE_TILES, 
-    distance, computeFinalReward, getPickupFinalReward, getDeliverFinalReward, getFinalReward, 
+    distance, computeFinalReward, getPickupFinalReward, getDeliverFinalReward, getFinalReward, getRewardAtDestination,
     findNearestDeliverySpot, findFarthestParcelSpawner, findBestOption, swapIntentions, putInTheQueue, isIntentionAlreadyQueued };

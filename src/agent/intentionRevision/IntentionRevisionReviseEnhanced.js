@@ -1,6 +1,5 @@
 import { IntentionRevision } from "./index.js";
-import { beliefs, constantBeliefs, Intention, putInTheQueue, swapIntentions, GO_TO, GO_DELIVER, GO_PICK_UP } from "../index.js";
-import { isDestinationReachable } from "../planning/utilsPlanning.js";
+import { beliefs, constantBeliefs, Intention, putInTheQueue, swapIntentions, GO_TO, GO_DELIVER, GO_PICK_UP, findNearestDeliverySpot, getRewardAtDestination, distance } from "../index.js";
 
 class IntentionRevisionReviseEnhanced extends IntentionRevision {
     
@@ -97,12 +96,9 @@ class IntentionRevisionReviseEnhanced extends IntentionRevision {
         const agent_pos = { x: beliefs.me.x, y: beliefs.me.y };
         
         // Get basic comparison from existing swapIntentions function
-        const basicComparison = swapIntentions(intention1, intention2, beliefs.me, beliefs.storedParcels);
+        // const basicComparison = swapIntentions(intention1, intention2, beliefs.me, beliefs.storedParcels);
         
-        // Additional factors to consider
-        const reachabilityFactor = await this.compareReachability(intention1, intention2, agent_pos);
-        const urgencyFactor = this.compareUrgency(intention1, intention2);
-        const riskFactor = this.compareRisk(intention1, intention2);
+        // return basicComparison;
         
         // Combine factors (weighted decision)
         const score1 = this.calculateIntentionScore(intention1, agent_pos);
@@ -120,28 +116,34 @@ class IntentionRevisionReviseEnhanced extends IntentionRevision {
         let score = 0;
         const predicate = intention.predicate;
         
+        let target_pos = { x: predicate[1], y: predicate[2] };
+        
         // Base reward factor
         if (predicate[0] === GO_PICK_UP) {
             const parcel = beliefs.storedParcels.get(predicate[3]);
             if (parcel) {
-                score += parcel.reward;
+
+                
+                let target_reward_at_pickup = getRewardAtDestination(parcel.reward, agent_pos, target_pos);
+                let carried_reward_at_pickup = getRewardAtDestination(beliefs.me.carriedReward, agent_pos, target_pos, beliefs.me.parcelsImCarrying);
+                let total_reward_at_pickup = target_reward_at_pickup + carried_reward_at_pickup;
+
+                let nearest_delivery_from_parcel = findNearestDeliverySpot(target_pos);
+                let total_reward_at_delivery = getRewardAtDestination(total_reward_at_pickup, target_pos, nearest_delivery_from_parcel, beliefs.me.parcelsImCarrying + 1);
+                
+                score += total_reward_at_delivery;
+
             }
         } else if (predicate[0] === GO_DELIVER) {
-            score += beliefs.me.carriedReward || 0;
+            
+            let total_reward_at_delivery = getRewardAtDestination(beliefs.me.carriedReward, agent_pos, target_pos, beliefs.me.parcelsImCarrying);
+
+            score += total_reward_at_delivery;
+
         }
-        
-        // Distance factor (closer is better)
-        const targetPos = { x: predicate[1], y: predicate[2] };
-        const distance = this.calculateDistance(agent_pos, targetPos);
-        score -= distance * 2; // Penalty for distance
-        
-        // Urgency factor
-        if (predicate[0] === GO_DELIVER && beliefs.me.parcelsImCarrying > 0) {
-            score += 50; // Bonus for delivery when carrying parcels
-        }
-        
+
         // Risk factor (penalize if area has many agents)
-        const riskPenalty = this.calculateRiskPenalty(targetPos);
+        const riskPenalty = this.calculateRiskPenalty(target_pos);
         score -= riskPenalty;
         
         // Failure history penalty
@@ -198,12 +200,14 @@ class IntentionRevisionReviseEnhanced extends IntentionRevision {
      */
     calculateRiskPenalty(position) {
         let penalty = 0;
+
+        const distance_from_me = distance(position, { x: beliefs.me.x, y: beliefs.me.y });
         
         for (const agentGroup of beliefs.otherAgents?.values() || []) {
             for (const agent of agentGroup) {
-                const distance = Math.abs(agent.x - position.x) + Math.abs(agent.y - position.y);
-                if (distance <= 3) {
-                    penalty += Math.max(0, 10 - distance * 2); // Higher penalty for closer agents
+                const agent_distance = distance(position, { x: agent.x, y: agent.y });
+                if (agent_distance < distance_from_me && distance_from_me <= 5) {
+                    penalty += 10; // Higher penalty for closer agents
                 }
             }
         }
