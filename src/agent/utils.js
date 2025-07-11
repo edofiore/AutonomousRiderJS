@@ -161,13 +161,14 @@ const findBestOption = (options, parcels, agent) => {
     let biggest_reward = Number.MIN_VALUE;
     let final_reward;
 
+    // Compare options
     for (const option of options) {
         if(option[0] == GO_PICK_UP) {
-            const [, x, y, p_id] = option;
+            const [action, x, y, p_id] = option;
             const agent_pos = {x: agent.x, y: agent.y}
 
             const parcel = parcels.get(p_id);
-            final_reward = getFinalReward(option[0], agent.carriedReward, agent_pos, {x, y}, parcel.reward);
+            const final_reward = getFinalReward(action, agent.carriedReward, agent_pos, {x, y}, parcel.reward);
             
             if (final_reward > biggest_reward) {
                 best_option = option;
@@ -228,15 +229,39 @@ const swapIntentions = (intention_1, intention_2, agent, parcels = undefined) =>
 }
 
 const putInTheQueue = async (index, new_intention, queue) => {
-    if(index == 0) {
-        const tmp = queue[index];
-        await queue[index].stop();
-        queue[index] = new_intention;
-        queue[index+1] = tmp;
-    } else {
-        await queue[index].stop();
-        queue[index] = new_intention;
+    // Check if the index is valid
+    if (index < 0 || index >= queue.length) {
+        console.log(`Invalid index ${index}. Queue length: ${queue.length}`);
+        return queue;
     }
+
+    if (index == 0) {
+        const tmp = queue[index];
+        
+        // Stop the current intention at position 0
+        try {
+            if (queue[index]) {
+                await queue[index].stop();
+            }
+        } catch (error) {
+            console.log("Error stopping intention at index 0:", error);
+        }
+        
+        // Insert the new intention at position 0
+        queue[index] = new_intention;
+        
+        // Move the old intention to position 1
+        queue[index+1] = tmp;
+        
+        console.log("Swapped intentions: new intention at index 0, old intention moved to index 1");
+        
+    } else {        
+        // For indices other than 0, just replace - no need to stop queued intentions
+        queue[index] = new_intention;
+        console.log(`Replaced intention at index ${index}`);
+    }
+
+    console.log("QUEUE PUT", queue.map(i => console.log(i?.predicate)));
 
     return queue;
 }
