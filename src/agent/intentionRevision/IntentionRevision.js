@@ -66,6 +66,46 @@ class IntentionRevision {
         }
     }
 
+        async putInTheQueue (index, new_intention) {
+    
+        console.log("QUEUE PRE PUT", this.intention_queue.map(i => i?.predicate));
+    
+        // Check if the index is valid
+        if (index < 0 || index >= this.intention_queue.length) {
+            console.log(`Invalid index ${index}. Queue length: ${this.intention_queue.length}`);
+            return;
+        }
+    
+        if (index == 0) {
+            const tmp = this.intention_queue[index];
+            
+            // Stop the current intention at position 0
+            try {
+                if (this.intention_queue[index]) {
+                    await this.intention_queue[index].stop();
+                }
+            } catch (error) {
+                console.log("Error stopping intention at index 0:", error);
+            }
+            
+            // Insert the new intention at position 0
+            this.intention_queue[index] = new_intention;
+            
+            // Move the old intention to position 1
+            this.intention_queue[index+1] = tmp;
+            
+            console.log("Swapped intentions: new intention at index 0, old intention moved to index 1");
+            
+        } else {        
+            // For indices other than 0, just replace - no need to stop queued intentions
+            this.intention_queue[index] = new_intention;
+            console.log(`Replaced intention at index ${index}`);
+        }
+    
+        console.log("QUEUE POST PUT", this.intention_queue.map(i => i?.predicate));
+        return;
+    }
+
 
     log (...args) {
         console.log(...args)

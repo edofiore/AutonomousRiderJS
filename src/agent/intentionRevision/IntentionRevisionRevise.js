@@ -1,121 +1,280 @@
-import { IntentionRevision } from "./index.js"
-import { beliefs, constantBeliefs, Intention, putInTheQueue, swapIntentions, GO_TO, GO_DELIVER, GO_PICK_UP } from "../index.js";
-
+import { IntentionRevision } from "./index.js";
+import { beliefs, constantBeliefs, Intention, GO_TO, GO_DELIVER, GO_PICK_UP, calculateScore } from "../index.js";
 
 class IntentionRevisionRevise extends IntentionRevision {
     
-    // async push(predicate) {
-    //     console.log("Revising intention queue. Received", ...predicate);
-    //      // TODO
-    //     // - order intentions based on utility function (reward - cost) (for example, parcel score minus distance)
-    //     // - eventually stop current one
-    //     // - evaluate validity of intention
-    // }
-
+    #failureCount = new Map(); // Track failure count per intention type
+    #lastFailureTime = new Map(); // Track when intentions last failed
+    
     /**
-     * 
-     * @param {[action: string, x: number, y: number, parcel_id: number]} predicate 
+     * Enhanced push method with better failure handling
+     * @param {[action: string, x: number, y: number, parcel_id: string]} predicate 
      * @returns 
      */
-    async push ( predicate ) {
-
+    async push(predicate) {
         // Check if already queued
-        if ( this.isAlreadyQueued(predicate) ) {
+        if (this.isAlreadyQueued(predicate)) {
             console.log("Intention is already queued!");
-            return; // intention is already queued
+            return;
         }
         
-        const new_intention = new Intention( this, predicate );
+        const new_intention = new Intention(this, predicate);
 
-        /**
-         * In this way the deliver intention will be not put immediately after the pick up intention if the agent has not pick up other packages before.
-         * This due the fact that when we check the new_intention, the pick-up intention is not already finished, so the agent is not carrying any parcels
-        */
-        // // Check if the new intention is still valid
-        // if (!new_intention.isStillValid()) {
-        //     console.log("Skipping invalid intention:", new_intention.predicate);
-        //     return; // intention is not still valid
+        // Enhanced validation - check if destination is reachable
+        // if (predicate[0] === GO_TO || predicate[0] === GO_PICK_UP || predicate[0] === GO_DELIVER) {
+        //     const targetPos = { x: predicate[1], y: predicate[2] };
+        //     const currentPos = { x: beliefs.me.x, y: beliefs.me.y };
+            
+        //     const isReachable = await isDestinationReachable(currentPos, targetPos);
+        //     if (!isReachable) {
+        //         console.log(`Skipping intention ${predicate} - destination not reachable`);
+        //         return;
+        //     }
         // }
-        // this.intention_queue.push( intention );
 
-        /**
-         * TODO: 
-         * - if the agent is going to pick up a specific parcel, but along his path there is another parcel, he must pick up that parcel;
-         * - the same in the case he's bringing parcels and along the path passes over a delivery spot, he must deliver the parcel he has
-         * - Put new intentions as sub_intentions?
-         */
+        // Check for recent failures of similar intentions
+        // const intentionKey = this.getIntentionKey(predicate);
+        // if (this.shouldSkipDueToRecentFailures(intentionKey)) {
+        //     console.log(`Skipping intention due to recent failures: ${intentionKey}`);
+        //     return;
+        // }
 
-        // If the first position of the queue is occupied, evaluate the intentions
-        if(this.intention_queue[0]){
+        if (this.intention_queue[0]) {
+            // Enhanced decision making for intention management
+            await this.handleExistingIntentions(new_intention);
+        } else {
+            // Queue is empty, add the new intention
+            this.intention_queue[0] = new_intention;
+            console.log("Added intention to empty queue:", new_intention.predicate);
+        }
+        
+        console.log("QUEUE:", this.intention_queue.map(intention => intention?.predicate || 'undefined'));
+    }
 
-            // If the current intention is "go_to" and the new intention is "go_pick_up" or "go_deliver", stop the "go_to" intention.
-            // May happen that a "go_to" intention is added before a deliver even if the agent is picking up a parcel due to delay;
-            // in that case we stop the go_to.
-            if(this.intention_queue[0].predicate[0] == GO_TO && new_intention.predicate[0] != GO_TO) {
-                this.intention_queue[1] = new_intention;
-                // console.log("UPDATED QUEUE 1:", this.intention_queue.map(intention => intention.predicate))
-                console.log("Stopping...");
-                await this.intention_queue[0].stop();
-                // console.log("UPDATED QUEUE 2:", this.intention_queue.map(intention => intention.predicate))
+    /**
+     * Handle the case where there are existing intentions in the queue
+     */
+    async handleExistingIntentions(new_intention) {
+        const currentIntention = this.intention_queue[0];
+        const new_predicate = new_intention.predicate;
 
-            // Otherwise if the current intention is "go_deliver" or "go_pick_up"
-            } else if (this.intention_queue[0].predicate[0] == GO_DELIVER || this.intention_queue[0].predicate[0] == GO_PICK_UP) {
-                this.intention_queue[1] = new_intention;
-                // console.log("UPDATED QUEUE 3:", this.intention_queue.map(intention => intention.predicate))
+        // If current intention is GO_TO and new is more important, replace it
+        if (currentIntention.predicate[0] === GO_TO && new_predicate[0] !== GO_TO) {
+            console.log("Replacing GO_TO intention with more important one");
+            this.intention_queue[1] = new_intention;
+            await currentIntention.stop();
+            console.log("Stopped GO_TO intention");
+        }
+        // If current intention is GO_DELIVER or GO_PICK_UP
+        else if (currentIntention.predicate[0] === GO_DELIVER || currentIntention.predicate[0] === GO_PICK_UP) {
+            this.intention_queue[1] = new_intention;
 
-                /**
-                 * Compare intention and re-order
-                 */
-                // If the new intention is "go_deliver" or "go_pick_up"
-                if(new_intention.predicate[0] == GO_PICK_UP || new_intention.predicate[0] == GO_DELIVER) {
+            // Enhanced comparison for GO_PICK_UP and GO_DELIVER intentions
+            if (new_predicate[0] === GO_PICK_UP || new_predicate[0] === GO_DELIVER) {
+                const shouldSwap = await this.intentionComparison(currentIntention, new_intention);
 
-                    /**
-                     * TODO: Decide if to swap 2 intentions or simply stop the first one  
-                     */
-                    // Compare if the new intention is better than the first in the queue 
-                    const swap = swapIntentions(this.intention_queue[0], new_intention, beliefs.me, beliefs.storedParcels)
-
-                    // If true, put the new intention in first position and shift the rest
-                    if(swap) {
-                        // console.log("Stopping...");
-                        // this.intention_queue[0].stop();
-                        this.intention_queue = await putInTheQueue(0, new_intention, this.intention_queue);
-                        
-                        // console.log("UPDATED QUEUE 4:", this.intention_queue.map(intention => intention.predicate))
-                    // Otherwise, if the first in the queue is better, compare the new intention with the second one of the queue
-                    } else {
-                        const swap_again = swapIntentions(this.intention_queue[1], new_intention, beliefs.me, beliefs.storedParcels)
-
-                        if (swap_again) {
-                            this.intention_queue = await putInTheQueue(1, new_intention, this.intention_queue);
+                if (shouldSwap) {
+                    console.log("Swapping intentions based on enhanced comparison");
+                    await this.putInTheQueue(0, new_intention);
+                } else {
+                    // Check if we should insert at position 1
+                    if (this.intention_queue[1]) {
+                        const shouldSwapWithSecond = await this.intentionComparison(this.intention_queue[1], new_intention);
+                        if (shouldSwapWithSecond) {
+                            await this.putInTheQueue(1, new_intention);
                         }
                     }
-                    
-                    // const best_option = findBestOption(this.intention_queue, me);
-                    // if(best_option != this.intention_queue[0]) {
-                    //     const tmp = this.intention_queue[0];
-                    //     this.intention_queue[0].stop();
-                    //     this.intention_queue[1] = tmp;
-                    // }
                 }
-            } 
-            // else if (this.intention_queue[0].predicate[0] == GO_PICK_UP && new_intention.predicate[0] != GO_TO) {
+            }
+        }
+    }
 
-            //     /**
-            //      * TODO: compare to see the best pickup intention. If it is needed to stop and go for another pickup
-            //      */
+    /**
+     * Enhanced intention comparison that considers multiple factors
+     */
+    async intentionComparison(intention1, intention2) {
+        
+        if (this.getIntentionKey(intention1.predicate) === this.getIntentionKey(intention2.predicate)) {
+            console.log("Intention comparison: Same intention, no swap needed");
+            return false; // Same intention, no swap needed
+        }
 
-            //     this.intention_queue[1] = new_intention;
-            // }
+        const agent_pos = { x: beliefs.me.x, y: beliefs.me.y };
 
-        // Otherwise, if the queue is empty, put the new intention in the first position of the queue
-        } else{
-            this.intention_queue[0] = new_intention;
-            // console.log("UPDATED QUEUE 0:", this.intention_queue.map(intention => intention.predicate))
+        const score1 = calculateScore(intention1.predicate, agent_pos, this.#failureCount.get(this.getIntentionKey(intention1.predicate)) || 0);
+        const score2 = calculateScore(intention2.predicate, agent_pos, this.#failureCount.get(this.getIntentionKey(intention1.predicate)) || 0);
+        
+        console.log(`Intention comparison: ${intention1.predicate} (${score1}) vs ${intention2.predicate} (${score2})`);
+        
+        return score2 > score1;
+    }
+
+    /**
+     * Compare reachability of two intentions
+     */
+    async compareReachability(intention1, intention2, agent_pos) {
+        const pos1 = { x: intention1.predicate[1], y: intention1.predicate[2] };
+        const pos2 = { x: intention2.predicate[1], y: intention2.predicate[2] };
+        
+        const reachable1 = await isDestinationReachable(agent_pos, pos1);
+        const reachable2 = await isDestinationReachable(agent_pos, pos2);
+        
+        if (reachable1 && !reachable2) return -1; // intention1 is better
+        if (!reachable1 && reachable2) return 1;  // intention2 is better
+        return 0; // both equally reachable/unreachable
+    }
+
+    /**
+     * Get a key to identify similar intentions for failure tracking
+     */
+    getIntentionKey(predicate) {
+        if (predicate[0] === GO_PICK_UP) {
+            return `${predicate[0]}-${predicate[3]}`; // Include parcel ID
+        }
+        return `${predicate[0]}-${predicate[1]}-${predicate[2]}`; // Include coordinates
+    }
+
+    /**
+     * Check if we should skip an intention due to recent failures
+     */
+    shouldSkipDueToRecentFailures(intentionKey) {
+        const failures = this.#failureCount.get(intentionKey) || 0;
+        const lastFailure = this.#lastFailureTime.get(intentionKey) || 0;
+        const currentTime = Date.now();
+        
+        // Skip if too many recent failures
+        if (failures >= 3 && (currentTime - lastFailure) < 30000) { // 30 seconds
+            return true;
         }
         
-        console.log("QUEUE:", this.intention_queue.map(intention => intention.predicate));
+        // Reset failure count if enough time has passed
+        if ((currentTime - lastFailure) > 60000) { // 1 minute
+            this.#failureCount.set(intentionKey, 0);
+        }
+        
+        return false;
+    }
+
+    /**
+     * Record a failure for an intention
+     */
+    recordIntentionFailure(predicate, error) {
+        const intentionKey = this.getIntentionKey(predicate);
+        const currentFailures = this.#failureCount.get(intentionKey) || 0;
+        
+        this.#failureCount.set(intentionKey, currentFailures + 1);
+        this.#lastFailureTime.set(intentionKey, Date.now());
+        
+        console.log(`Recorded failure for ${intentionKey}: ${currentFailures + 1} total failures`);
+        console.log(`Failure reason: `, error);
+    }
+
+    /**
+     * Enhanced loop with better error handling and replanning
+     */
+    async loop() {
+        while (true) {
+            if (this.intention_queue.length > 0) {
+                console.log("IntentionRevision.loop", this.intention_queue.map(i => i?.predicate || 'undefined'));
+
+                const intention = this.intention_queue[0];
+                if (!intention) {
+                    this.intention_queue.shift();
+                    continue;
+                }
+
+                // Enhanced validity check
+                if (!this.isIntentionStillValid(intention)) {
+                    console.log("Skipping invalid intention:", intention.predicate);
+                    this.intention_queue.shift();
+                    continue;
+                }
+
+                // Execute intention with enhanced error handling
+                try {
+                    await intention.achieve();
+                    console.log('Successfully completed intention:', intention.predicate);
+                } catch (error) {
+                    console.log('Failed intention:', intention.predicate, 'Error:', error);
+                    
+                    // Record the failure
+                    this.recordIntentionFailure(intention.predicate, error);
+                    
+                    // Determine if we should retry or abandon
+                    if (this.shouldRetryIntention(intention, error)) {
+                        console.log('Retrying intention after brief delay');
+                        // Add some delay before retry
+                        await new Promise(resolve => 
+                            setTimeout(resolve, constantBeliefs.config.MOVEMENT_DURATION)
+                        );
+                        continue; // Don't remove from queue, try again
+                    }
+                }
+
+                // Remove completed/failed intention from queue
+                this.intention_queue.shift();
+            }
+
+            // Postpone next iteration
+            await new Promise(res => setImmediate(res));
+        }
+    }
+
+    /**
+     * Enhanced validity check for intentions
+     */
+    isIntentionStillValid(intention) {
+        const predicate = intention.predicate;
+        
+        if (predicate[0] === GO_PICK_UP) {
+            const parcel_id = predicate[3];
+            const parcel = beliefs.storedParcels.get(parcel_id);
+            
+            if (!parcel || parcel.carriedBy) {
+                return false; // Parcel no longer available
+            }
+            
+            // Check if parcel is still worth picking up
+            if (parcel.reward <= 0) {
+                return false;
+            }
+        } else if (predicate[0] === GO_DELIVER) {
+            if (!beliefs.me?.parcelsImCarrying || beliefs.me.parcelsImCarrying === 0) {
+                return false; // Nothing to deliver
+            }
+        }
+        
+        return true;
+    }
+
+    /**
+     * Determine if an intention should be retried based on the error
+     */
+    shouldRetryIntention(intention, error) {
+        if (!Array.isArray(error)) return false;
+        
+        const errorType = error[0];
+        const intentionKey = this.getIntentionKey(intention.predicate);
+        const failures = this.#failureCount.get(intentionKey) || 0;
+        
+        // Don't retry if too many failures
+        if (failures >= 3) return false;
+        
+        // Retry for certain error types
+        const retryableErrors = [
+            'path blocked - max attempts reached',
+            'tile blocked',
+            'no alternative path found',
+            'movement failed'
+        ];
+        
+        return retryableErrors.includes(errorType);
+    }
+
+    log(...args) {
+        console.log(...args);
     }
 }
 
-export {IntentionRevisionRevise};
+
+export { IntentionRevisionRevise };

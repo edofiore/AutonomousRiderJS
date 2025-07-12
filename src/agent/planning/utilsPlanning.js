@@ -135,6 +135,10 @@ const findBestPath = async (current_pos, destination, allowTemporaryBlocked = fa
     // }
 
     // Remove the starting position from the path
+    if (!path || path.length === 0) {
+        throw new Error(`No path found from ${myPos} to ${dest}`);
+    }
+    
     path.shift();
 
     console.log(`Path found: ${path.join(' -> ')}`);

@@ -1,7 +1,6 @@
 import { updateInfoOtherAgents } from "./agent/beliefs/otherAgents.js";
-import { Agent, beliefs, getMapConfig, processMapData, updateCarryingParcels, updateInfoAgent, updateParcelsPerceived } from "./agent/index.js";
+import { Agent, getMapConfig, processMapData, updateCarryingParcels, updateInfoAgent, updateParcelsPerceived, optionsGeneration } from "./agent/index.js";
 import { client } from "./config/index.js";
-import { optionsGeneration } from "./reasoning/utilsOptions.js";
     
 console.log("Start...")
 
