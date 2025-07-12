@@ -15,7 +15,14 @@ class GoPickUp extends Plan {
             throw ['Parcel is no longer available', id];
         }        
         if (this.stopped) throw ['stopped']; // if stopped then quit
-        await this.subIntention( ['go_to', x, y]);
+        try {
+            await this.subIntention(['go_to', x, y]);
+        } catch (error) {
+            if (Array.isArray(error) && error[0].includes('no path')) {
+                throw ['Parcel unreachable', id];
+            }
+            throw error;
+        }
         if (this.stopped) throw ['stopped']; // if stopped then quit
         parcel = beliefs.storedParcels.get(id);
         if (!parcel || parcel.carriedBy) {

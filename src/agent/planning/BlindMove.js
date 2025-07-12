@@ -76,7 +76,6 @@ class BlindMove extends Plan {
                             const newPath = await findBestPath(currentPos, {x, y});
                             
                             console.log(`Replanned path (attempt ${replanAttempts}):`, newPath);
-                            console.log(`---------------------NNNNEWWWWWW---------------------------\n`, newPath);
                             
                             // Update the path and restart from current position
                             path = newPath;
@@ -94,7 +93,7 @@ class BlindMove extends Plan {
                                 
                                 // Try to clear some blocked tiles and replan
                                 // this.clearSomeBlockedTiles();
-                                this.clearOldBlockedTiles();
+                                clearOldBlockedTiles();
                                 
                                 try {
                                     const currentPos = {x: beliefs.me.x, y: beliefs.me.y};
@@ -105,10 +104,10 @@ class BlindMove extends Plan {
                                     continue;
                                 } catch (finalError) {
                                     console.log("Final replan attempt failed");
-                                    throw ['no alternative path found'];
+                                    throw ['no alternative path found', currentPos, {x, y}];
                                 }
                             } else {
-                                throw ['replanning failed - no alternative path'];
+                                throw ['replanning failed - no alternative path', beliefs.me, {x, y}];
                             }
                         }
                     }

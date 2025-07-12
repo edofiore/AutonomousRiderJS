@@ -112,7 +112,7 @@ class Intention {
 
                 // Errors are caught so to continue with next plan
                 } catch (error) {
-                    this.log('Failed intention', ...this.predicate, 'with plan', planClass.name, 'with error:', ...error);
+                    this.log('Failed intention', ...this.predicate, 'with plan', planClass.name, 'with error:', error);
                 }
             }
         }
