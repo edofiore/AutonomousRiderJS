@@ -1,4 +1,4 @@
-import { beliefs, GO_DELIVER, GO_PICK_UP } from "../index.js";
+import { beliefs, GO_DELIVER, GO_PICK_UP, optionsGeneration } from "../index.js";
 
 /**
  * From intention_revision.js in lab_4 (2025)
@@ -30,23 +30,10 @@ class IntentionRevision {
                 const intention = this.intention_queue[0];
 
                 // Is queued intention still valid? Do I still want to achieve it?
-                // TODO: this hard-coded implementation is an example
-                if(intention.predicate[0] == GO_PICK_UP) {
-                    let id = intention.predicate[3];
-                    let p = beliefs.storedParcels.get(id);
-                    if (p && p.carriedBy) {
-                        console.log('Nothing to pick up!');
-                        console.log("Skipping intention because no more valid", intention.predicate);
-                        this.intention_queue.shift();
-                        continue;
-                    }
-                } else if(intention.predicate[0] == GO_DELIVER) {
-                    if (beliefs.me?.parcelsImCarrying == 0) {
-                        console.log('Nothing to deliver!');
-                        console.log("Skipping intention because no more valid", intention.predicate);
-                        this.intention_queue.shift();
-                        continue;
-                    }
+                if(!intention.isStillValid()) {
+                    console.log("Skipping intention because no more valid", intention.predicate);
+                    this.intention_queue.shift();
+                    continue;
                 }
 
                 // Start achieving intention
@@ -59,6 +46,8 @@ class IntentionRevision {
 
                 // Remove from the queue
                 this.intention_queue.shift();
+            } else {
+                optionsGeneration();
             }
 
             // Postpone next iteration at setImmediate
@@ -66,7 +55,7 @@ class IntentionRevision {
         }
     }
 
-        async putInTheQueue (index, new_intention) {
+    async putInTheQueue (index, new_intention) {
     
         console.log("QUEUE PRE PUT", this.intention_queue.map(i => i?.predicate));
     
@@ -77,12 +66,13 @@ class IntentionRevision {
         }
     
         if (index == 0) {
-            const tmp = this.intention_queue[index];
+            const currentIntention = this.intention_queue[index];
             
             // Stop the current intention at position 0
             try {
                 if (this.intention_queue[index]) {
                     await this.intention_queue[index].stop();
+                    console.log(`Stopped intention ${this.intention_queue[index].predicate} at index 0`);
                 }
             } catch (error) {
                 console.log("Error stopping intention at index 0:", error);
@@ -92,7 +82,7 @@ class IntentionRevision {
             this.intention_queue[index] = new_intention;
             
             // Move the old intention to position 1
-            this.intention_queue[index+1] = tmp;
+            this.intention_queue[index+1] = currentIntention;
             
             console.log("Swapped intentions: new intention at index 0, old intention moved to index 1");
             

@@ -55,24 +55,23 @@ class Intention {
 
         const [action, x, y, p_id] = this.#predicate;
 
-        if (action == GO_PICK_UP) {
-            return beliefs.storedParcels.has(p_id)
+        if(action == GO_PICK_UP) {
+            let p = beliefs.storedParcels.get(p_id);
+            if (p && p.carriedBy) {
+                console.log('Nothing to pick up!');
+                console.log("Skipping intention because no more valid", this.#predicate);
+                return false;
+            }
+        } else if(action == GO_DELIVER) {
+            if (beliefs.me?.parcelsImCarrying == 0) {
+                console.log('Nothing to deliver!');
+                console.log("Skipping intention because no more valid", this.#predicate);
+                return false;
+            }
         }
+        // TODO should we consider GO_TO also????
 
-        /**
-         * TODO: check also if the reward will be >0 when the agent will deliver the packages?
-         * 
-         * Verify if this could be a problem or if we manage this before. 
-         */
-        if (action == GO_DELIVER) {
-            return beliefs.me.parcelsImCarrying > 0
-        }
-
-        if (action == GO_TO) {
-            return true
-        }
-
-        // return true
+        return true;
     }
     
     #started = false;
