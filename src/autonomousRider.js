@@ -82,7 +82,7 @@ await new Promise(res => {
 setInterval(() => {
     client.onParcelsSensing( async () => await optionsGeneration() );
     client.onAgentsSensing( async () => await optionsGeneration() );
-    client.onYou( async () => await optionsGeneration() );
+    // client.onYou( async () => await optionsGeneration() );
     }, 1000
 )
 
