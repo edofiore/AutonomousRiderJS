@@ -61,13 +61,12 @@ class IntentionRevisionRevise extends IntentionRevision {
         // If current intention is GO_TO and new is more important, replace it
         if (currentIntention.predicate[0] === GO_TO && new_predicate[0] !== GO_TO) {
             console.log("Replacing GO_TO intention with more important one");
-            this.intention_queue[1] = new_intention;
-            await currentIntention.stop();
-            console.log("Stopped GO_TO intention");
+            // this.intention_queue[1] = new_intention;
+            await this.putInTheQueue(0, new_intention);
         }
         // If current intention is GO_DELIVER or GO_PICK_UP
         else if (currentIntention.predicate[0] === GO_DELIVER || currentIntention.predicate[0] === GO_PICK_UP) {
-            this.intention_queue[1] = new_intention;
+            // await this.putInTheQueue(1, new_intention);
 
             // Enhanced comparison for GO_PICK_UP and GO_DELIVER intentions
             if (new_predicate[0] === GO_PICK_UP || new_predicate[0] === GO_DELIVER) {
@@ -95,14 +94,14 @@ class IntentionRevisionRevise extends IntentionRevision {
     async intentionComparison(intention1, intention2) {
         
         if (this.getIntentionKey(intention1.predicate) === this.getIntentionKey(intention2.predicate)) {
-            console.log("Intention comparison: Same intention, no swap needed");
+            console.log(`Intention comparison: Same intention (${this.getIntentionKey(intention1.predicate)}, ${this.getIntentionKey(intention2.predicate)}), no swap needed`);
             return false; // Same intention, no swap needed
         }
 
         const agent_pos = { x: beliefs.me.x, y: beliefs.me.y };
 
         const score1 = calculateScore(intention1.predicate, agent_pos, this.#failureCount.get(this.getIntentionKey(intention1.predicate)) || 0);
-        const score2 = calculateScore(intention2.predicate, agent_pos, this.#failureCount.get(this.getIntentionKey(intention1.predicate)) || 0);
+        const score2 = calculateScore(intention2.predicate, agent_pos, this.#failureCount.get(this.getIntentionKey(intention2.predicate)) || 0);
         
         console.log(`Intention comparison: ${intention1.predicate} (${score1}) vs ${intention2.predicate} (${score2})`);
         
