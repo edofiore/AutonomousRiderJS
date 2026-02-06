@@ -11,6 +11,7 @@ import { beliefs, constantBeliefs } from "../index.js";
  * @param {string} tileId - The tile identifier (e.g., "1-2")
  */
 const addTemporaryBlockedTile = (tileId) => {
+    clearOldBlockedTiles();
     const currentTime = Date.now();
     
     // Check if tile is already in blocked list
@@ -18,20 +19,9 @@ const addTemporaryBlockedTile = (tileId) => {
         (typeof item === 'string' ? item : item.tile) === tileId
     );
     
+    // Update existing entry
     if (existingIndex !== -1) {
-        // Update existing entry
-        // if (typeof beliefs.tmpBlockedTiles[existingIndex] === 'string') {
-        //     beliefs.tmpBlockedTiles[existingIndex] = {
-        //         tile: tileId,
-        //         timestamp: currentTime,
-        //         attempts: 1
-        //     };
-        // } else {
-        //     beliefs.tmpBlockedTiles[existingIndex].timestamp = currentTime;
-        //     beliefs.tmpBlockedTiles[existingIndex].attempts++;
-        // }
-
-        beliefs.tmpBlockedTiles[existingIndex].timestamp = currentTime;
+        // beliefs.tmpBlockedTiles[existingIndex].timestamp = currentTime;
         beliefs.tmpBlockedTiles[existingIndex].attempts++;
         
     } else {
@@ -52,7 +42,7 @@ const addTemporaryBlockedTile = (tileId) => {
 const clearOldBlockedTiles = () => {
     const currentTime = Date.now();
     const maxAge = constantBeliefs.config.MOVEMENT_DURATION * 3; // movement cycles
-    const maxAttempts = 5;
+    // const maxAttempts = 5;
     
     const originalLength = beliefs.tmpBlockedTiles.length;
     
@@ -64,8 +54,8 @@ const clearOldBlockedTiles = () => {
         
         const age = currentTime - item.timestamp;
         const tooOld = age > maxAge;
-        const tooManyAttempts = item.attempts > maxAttempts;
-        
+        // const tooManyAttempts = item.attempts > maxAttempts;
+        const tooManyAttempts = false;
         return !tooOld && !tooManyAttempts;
     });
     

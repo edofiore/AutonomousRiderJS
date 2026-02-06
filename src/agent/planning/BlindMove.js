@@ -32,8 +32,6 @@ class BlindMove extends Plan {
                 throw ['no path available'];
             }
 
-            if (this.stopped) throw ['stopped'];
-
             // Execute path with replanning on blocked tiles
             for (let i = 0; i < path.length; i++) {
                 if (this.stopped) throw ['stopped'];

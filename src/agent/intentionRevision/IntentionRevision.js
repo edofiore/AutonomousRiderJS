@@ -18,15 +18,6 @@ class IntentionRevision {
     }
 
     /**
-     * Check if intention is already in the queue
-     * @param {Array} predicate - The intention predicate to check
-     * @returns {boolean} True if already queued
-     */
-    isAlreadyQueued(predicate) {
-        return this.intention_queue.find((i) => i.predicate.join(' ') == predicate.join(' '));
-    }
-
-    /**
      * Generate a unique key for an intention (for failure tracking)
      * @param {Array} predicate - The intention predicate
      * @returns {string} Unique key for the intention
@@ -36,6 +27,16 @@ class IntentionRevision {
             return `${predicate[0]}-${predicate[3]}`; // Include parcel_id
         }
         return `${predicate[0]}-${predicate[1]}-${predicate[2]}`;
+    }
+
+    /**
+     * Check if intention is already in the queue
+     * @param {Array} predicate - The intention predicate to check
+     * @returns {boolean} True if already queued
+     */
+    isAlreadyQueued(predicate) {
+        const intentionKey = this.getIntentionKey(predicate);
+        return this.intention_queue.find((i) => this.getIntentionKey(i.predicate) == intentionKey);
     }
 
     /**
@@ -54,7 +55,7 @@ class IntentionRevision {
         }
         
         // Reset counter after 30 seconds
-        if (timeSinceFailure > 30000) {
+        if (timeSinceFailure >= 30000) {
             this.#failureCount.delete(intentionKey);
             this.#lastFailureTime.delete(intentionKey);
         }
@@ -263,8 +264,6 @@ class IntentionRevision {
      * @param {Intention} new_intention - The intention to insert
      */
     async putInTheQueue(index, new_intention) {
-        console.log("QUEUE PRE PUT", this.intention_queue.map(i => i?.predicate));
-
         // Check if the index is valid
         if (index < 0 || index >= this.intention_queue.length) {
             console.log(`Invalid index ${index}. Queue length: ${this.intention_queue.length}`);
@@ -290,14 +289,12 @@ class IntentionRevision {
             // Move the old intention to position 1
             this.intention_queue[index + 1] = currentIntention;
             
-            console.log("Swapped intentions: new intention at index 0, old intention moved to index 1");
+            console.log(`Swapped intentions: new intention ${new_intention.predicate} at index 0, old intention ${currentIntention?.predicate || 'undefined'} moved to index 1`);
         } else {
-            // For indices other than 0, just replace - no need to stop queued intentions
+            // For indexes other than 0, just replace - no need to stop queued intentions
             this.intention_queue[index] = new_intention;
             console.log(`Replaced intention at index ${index}`);
         }
-
-        console.log("QUEUE POST PUT", this.intention_queue.map(i => i?.predicate));
     }
 
     /**
