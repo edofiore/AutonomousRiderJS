@@ -50,20 +50,27 @@ class Intention {
             console.log(...args)
     }
 
-    isStillValid () {
-        console.log("Is this still valid?");
+    /**
+     * Check if the intention is still valid before trying to achieve it
+     * @returns {boolean}
+    */
 
+    isStillValid () {
+        
         const [action, x, y, p_id] = this.#predicate;
+
+        console.log(`Is intention ${action} ${x}-${y} still valid?`);
 
         if(action == GO_PICK_UP) {
             let p = beliefs.storedParcels.get(p_id);
-            if (p && p.carriedBy) {
-                console.log('Nothing to pick up!');
+
+            if (!p || p.carriedBy || p.reward <= 0) {
+                console.log(`Parcel at ${x},${y} is either no longer available or carried by someone!`);
                 console.log("Skipping intention because no more valid", this.#predicate);
                 return false;
             }
         } else if(action == GO_DELIVER) {
-            if (beliefs.me?.parcelsImCarrying == 0) {
+            if (!beliefs.me?.parcelsImCarrying || beliefs.me.parcelsImCarrying === 0) {
                 console.log('Nothing to deliver!');
                 console.log("Skipping intention because no more valid", this.#predicate);
                 return false;

@@ -38,16 +38,16 @@ class GoPickUp extends Plan {
         if (this.stopped) throw ['stopped'];
 
         // Find parcels along the path to the main target
-        const pathParcels = await this.findParcelsAlongPath(
+        const parcelsAlongPath = await this.findParcelsAlongPath(
             { x: beliefs.me.x, y: beliefs.me.y }, 
             { x, y }, 
             id
         );
 
-        console.log(`Found ${pathParcels.length} parcels along the path to main target`);
+        console.log(`Found ${parcelsAlongPath.length} parcels along the path to main target`);
 
         // Execute sub-intentions for parcels along the path
-        for (const pathParcel of pathParcels) {
+        for (const pathParcel of parcelsAlongPath) {
             if (this.stopped) throw ['stopped'];
             
             // Check if parcel is still available
