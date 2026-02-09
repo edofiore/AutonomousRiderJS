@@ -14,7 +14,7 @@ const beliefs = {
         carriedReward: null     // Total reward the agent is carrying
     },
     storedParcels: new Map(),
-    otherAgents: new Map(),
+    otherAgents: new Map(), // Map of <agentId, {[name, x, y, score, penalty, timestamp, direction], ...}>
     tmpBlockedTiles: [],
 }
 

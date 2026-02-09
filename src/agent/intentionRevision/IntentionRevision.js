@@ -277,7 +277,7 @@ class IntentionRevision {
             try {
                 if (this.intention_queue[index]) {
                     await this.intention_queue[index].stop();
-                    console.log(`Stopped intention ${this.intention_queue[index].predicate} at index 0`);
+                    console.log(`Stopped intention ${currentIntention?.predicate || 'undefined'} at index 0`);
                 }
             } catch (error) {
                 console.log("Error stopping intention at index 0:", error);
