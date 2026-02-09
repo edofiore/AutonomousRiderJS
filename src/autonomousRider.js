@@ -1,5 +1,5 @@
 import { updateInfoOtherAgents } from "./agent/beliefs/otherAgents.js";
-import { Agent, getMapConfig, processMapData, updateCarryingParcels, updateInfoAgent, updateParcelsPerceived, optionsGeneration } from "./agent/index.js";
+import { Agent, getMapConfig, processMapData, updateInfoAgent, updatePerceivedParcels, optionsGeneration } from "./agent/index.js";
 import { client } from "./config/index.js";
     
 console.log("Start...")
@@ -43,8 +43,7 @@ await Promise.race([
         });
 
         client.onParcelsSensing(async (parcels) => {
-            await updateParcelsPerceived(parcels);
-            await updateCarryingParcels(parcels);
+            await updatePerceivedParcels(parcels);
             received.parcels = true;
             checkAllReceived();
         });

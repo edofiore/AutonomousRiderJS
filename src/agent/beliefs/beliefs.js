@@ -10,8 +10,8 @@ const beliefs = {
         x: null, 
         y: null, 
         score: null,    // Total score of the agent
-        parcelsImCarrying: null,    // Number of parcels the agent is carrying
-        carriedReward: null     // Total reward the agent is carrying
+        carried_parcels_count: null,    // Number of parcels the agent is carrying
+        total_carried_reward: null     // Total reward the agent is carrying
     },
     storedParcels: new Map(),
     otherAgents: new Map(), // Map of <agentId, {[name, x, y, score, penalty, timestamp, direction], ...}>

@@ -20,7 +20,6 @@ const updateInfoOtherAgents = (agents) => {
         }
 
         const log = {
-            id: a.id,
             name: a.name,
             x: a.x,
             y: a.y,
@@ -43,7 +42,7 @@ const updateInfoOtherAgents = (agents) => {
 
         // compute if within perceiving area
         let prettyPrint = Array.from(beliefs.otherAgents.values()).map( (logs) => {
-            const {timestamp,name,x,y,direction} = logs[logs.length-1]
+            const {timestamp,name,x,y,direction} = logs.at(-1);
             const distance_from_me = distance( beliefs.me, {x,y} );
             return `${name}(${direction},${ distance_from_me < constantBeliefs.config.AOD})@${timestamp}:${x},${y}`;
         }).join(' ');

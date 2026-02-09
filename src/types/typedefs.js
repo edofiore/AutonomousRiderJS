@@ -39,8 +39,8 @@
 /**
  * @global
  * @typedef {Agent} MeAgent
- * @property {number} parcelsImCarrying - Number of parcels the agent is carrying
- * @property {number} carriedReward - Total reward of carried parcels
+ * @property {number} carried_parcels_count - Number of parcels the agent is carrying
+ * @property {number} total_carried_reward - Total reward of carried parcels
  */
 
 /**

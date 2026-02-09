@@ -84,10 +84,10 @@ const getRewardAtDestination = (initial_reward, starting_pos, destination, n_par
 const compareUrgency = (intention1, intention2) =>{
     // Delivery is generally more urgent when carrying parcels
     if (intention1.predicate[0] === GO_DELIVER && intention2.predicate[0] !== GO_DELIVER) {
-        return beliefs.me.parcelsImCarrying > 0 ? -1 : 0;
+        return beliefs.me.carried_parcels_count > 0 ? -1 : 0;
     }
     if (intention2.predicate[0] === GO_DELIVER && intention1.predicate[0] !== GO_DELIVER) {
-        return beliefs.me.parcelsImCarrying > 0 ? 1 : 0;
+        return beliefs.me.carried_parcels_count > 0 ? 1 : 0;
     }
     return 0;
 }

@@ -3,24 +3,32 @@ import { beliefs } from "./index.js"
 /**
  * @type { Parcel } perceivedParcels
  */
-// const storedParcels = new Map();
 
-const updateParcelsPerceived = async ( perceivedParcels ) => {
+const updatePerceivedParcels = async ( perceivedParcels ) => {
     
-    console.log("Updating perceived parcels...")
-    console.log("PERCEIVED PARCELS", perceivedParcels)
+    let current_carried_parcels = 0;
+    let current_carried_reward = 0;
+
     // Adds new uncarried perceived parcels
     for (const p of perceivedParcels) {
-        if(!p.carriedBy && !beliefs.storedParcels.has(p.id)){
-            console.log("Storing parcel...")
+        if( !p.carriedBy && !beliefs.storedParcels.has(p.id) ){
             beliefs.storedParcels.set( p.id, p);
-            console.log("Updated stored parcels...", beliefs.storedParcels)
-        // Removes parcels that are now being carried
-        } else if(p.carriedBy && beliefs.storedParcels.has(p.id)) {
-            console.log("DELETING PARCEL", p.id)
-            beliefs.storedParcels.delete( p.id );
+        } else if( p.carriedBy ) {
+            // Removes parcels that are now being carried
+            if ( beliefs.storedParcels.has(p.id) ) {
+                beliefs.storedParcels.delete( p.id );
+            }
+
+            // Update info about the parcels I'm carrying
+            if ( p.carriedBy == beliefs.me.id ) {
+                current_carried_parcels += 1;
+                current_carried_reward += p.reward;
+            }
         }
     }
+
+    beliefs.me.carried_parcels_count = current_carried_parcels;
+    beliefs.me.total_carried_reward = current_carried_reward;
     
     // Remove parcels that are no more perceived
     for ( const p of beliefs.storedParcels.values() ) {
@@ -30,4 +38,4 @@ const updateParcelsPerceived = async ( perceivedParcels ) => {
     }
 }
 
-export { updateParcelsPerceived };
+export { updatePerceivedParcels };

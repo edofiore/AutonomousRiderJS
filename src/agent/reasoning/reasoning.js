@@ -12,7 +12,6 @@ async function optionsGeneration() {
      * Options generation
      */
     const options = [];
-    // console.log("STORED PARCELS", beliefs.storedParcels)
 
     // For each
     for (const parcel of beliefs.storedParcels.values()) {
@@ -176,17 +175,17 @@ const calculateScore = (predicate, agent_pos, failures = undefined) => {
 
 
             let target_reward_at_pickup = getRewardAtDestination(parcel.reward, agent_pos, target_pos);
-            let carried_reward_at_pickup = getRewardAtDestination(beliefs.me.carriedReward, agent_pos, target_pos, beliefs.me.parcelsImCarrying);
+            let carried_reward_at_pickup = getRewardAtDestination(beliefs.me.total_carried_reward, agent_pos, target_pos, beliefs.me.carried_parcels_count);
             let total_reward_at_pickup = target_reward_at_pickup + carried_reward_at_pickup;
 
             let nearest_delivery_from_parcel = findNearestDeliverySpot(target_pos);
-            let total_reward_at_delivery = getRewardAtDestination(total_reward_at_pickup, target_pos, nearest_delivery_from_parcel, beliefs.me.parcelsImCarrying + 1);
+            let total_reward_at_delivery = getRewardAtDestination(total_reward_at_pickup, target_pos, nearest_delivery_from_parcel, beliefs.me.carried_parcels_count + 1);
 
             score += total_reward_at_delivery;
         }
     } else if (predicate[0] === GO_DELIVER) {
 
-        let total_reward_at_delivery = getRewardAtDestination(beliefs.me.carriedReward, agent_pos, target_pos, beliefs.me.parcelsImCarrying);
+        let total_reward_at_delivery = getRewardAtDestination(beliefs.me.total_carried_reward, agent_pos, target_pos, beliefs.me.carried_parcels_count);
 
         score += total_reward_at_delivery;
     }

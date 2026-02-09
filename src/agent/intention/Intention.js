@@ -70,7 +70,7 @@ class Intention {
                 return false;
             }
         } else if(action == GO_DELIVER) {
-            if (!beliefs.me?.parcelsImCarrying || beliefs.me.parcelsImCarrying === 0) {
+            if (!beliefs.me?.carried_parcels_count || beliefs.me.carried_parcels_count === 0) {
                 console.log('Nothing to deliver!');
                 console.log("Skipping intention because no more valid", this.#predicate);
                 return false;
