@@ -30,10 +30,10 @@ const updateInfoOtherAgents = (agents) => {
             direction: 'none'
         }
 
-        const previous_log = beliefs.otherAgents.get( a.id );
+        const previous_logs_array = beliefs.otherAgents.get( a.id );
 
-        if ( previous_log.length > 0 ) {
-            var previous = previous_log[previous_log.length-1];
+        if ( previous_logs_array.length > 0 ) {
+            var previous = previous_logs_array.at(-1);
             if ( previous.x < a.x ) log.direction = 'right';
             else if ( previous.x > a.x ) log.direction = 'left';
             else if ( previous.y < a.y ) log.direction = 'up';
@@ -47,6 +47,7 @@ const updateInfoOtherAgents = (agents) => {
             const distance_from_me = distance( beliefs.me, {x,y} );
             return `${name}(${direction},${ distance_from_me < constantBeliefs.config.AOD})@${timestamp}:${x},${y}`;
         }).join(' ');
+        
         console.log("Other agents", prettyPrint);
     }
 }
