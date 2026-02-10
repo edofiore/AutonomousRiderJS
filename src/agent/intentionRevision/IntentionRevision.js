@@ -1,4 +1,4 @@
-import { beliefs, constantBeliefs, Intention, GO_TO, GO_DELIVER, GO_PICK_UP, calculateScore, optionsGeneration } from "../index.js";
+import { beliefs, constantBeliefs, Intention, GO_TO, GO_DELIVER, GO_PICK_UP, calculateScore, optionsGeneration, getIntentionKey } from "../index.js";
 
 /**
  * Unified IntentionRevision class for BDI architecture
@@ -6,8 +6,8 @@ import { beliefs, constantBeliefs, Intention, GO_TO, GO_DELIVER, GO_PICK_UP, cal
  */
 class IntentionRevision {
     #intention_queue = new Array();
-    #failureCount = new Map(); // Track failure count per intention type
-    #lastFailureTime = new Map(); // Track when intentions last failed
+    #failureCount = new Map(); // Track failure count per intention type <intentionKey, count>
+    #lastFailureTime = new Map(); // Track when intentions last failed <intentionKey, timestamp>
 
     get intention_queue() {
         return this.#intention_queue;
@@ -18,25 +18,13 @@ class IntentionRevision {
     }
 
     /**
-     * Generate a unique key for an intention (for failure tracking)
-     * @param {Array} predicate - The intention predicate
-     * @returns {string} Unique key for the intention
-     */
-    getIntentionKey(predicate) {
-        if (predicate[0] === GO_PICK_UP && predicate[3]) {
-            return `${predicate[0]}-${predicate[3]}`; // Include parcel_id
-        }
-        return `${predicate[0]}-${predicate[1]}-${predicate[2]}`;
-    }
-
-    /**
      * Check if intention is already in the queue
-     * @param {Array} predicate - The intention predicate to check
+     * @param {string} intentionKey - The intention key to check
      * @returns {boolean} True if already queued
      */
-    isAlreadyQueued(predicate) {
-        const intentionKey = this.getIntentionKey(predicate);
-        return this.intention_queue.find((i) => this.getIntentionKey(i.predicate) == intentionKey);
+    isAlreadyQueued(intentionKey) {
+        const intentionKey = intentionKey;
+        return this.intention_queue.find((i) => getIntentionKey(i.predicate) == intentionKey);
     }
 
     /**
@@ -45,17 +33,17 @@ class IntentionRevision {
      * @returns {boolean} True if should skip
      */
     shouldSkipDueToRecentFailures(intentionKey) {
-        const failures = this.#failureCount.get(intentionKey) || 0;
-        const lastFailure = this.#lastFailureTime.get(intentionKey) || 0;
-        const timeSinceFailure = Date.now() - lastFailure;
+        const failure_count = this.#failureCount.get(intentionKey) || 0;
+        const last_failure_time = this.#lastFailureTime.get(intentionKey) || 0;
+        const time_since_failure = Date.now() - last_failure_time;
         
         // Skip if too many recent failures (3+ in last 30 seconds)
-        if (failures >= 3 && timeSinceFailure < 30000) {
+        if (failure_count >= 3 && time_since_failure < 30000) {
             return true;
         }
         
         // Reset counter after 30 seconds
-        if (timeSinceFailure >= 30000) {
+        if (time_since_failure >= 30000) {
             this.#failureCount.delete(intentionKey);
             this.#lastFailureTime.delete(intentionKey);
         }
@@ -65,11 +53,10 @@ class IntentionRevision {
 
     /**
      * Record an intention failure for tracking
-     * @param {Array} predicate - The failed intention predicate
+     * @param {string} intentionKey - The failed intention key
      * @param {*} error - The error that occurred
      */
-    recordIntentionFailure(predicate, error) {
-        const intentionKey = this.getIntentionKey(predicate);
+    recordIntentionFailure(intentionKey, error) {
         const currentFailures = this.#failureCount.get(intentionKey) || 0;
         
         this.#failureCount.set(intentionKey, currentFailures + 1);
@@ -84,8 +71,10 @@ class IntentionRevision {
      * @param {Array} predicate - [action: string, x: number, y: number, parcel_id: string]
      */
     async push(predicate) {
+        const intentionKey = getIntentionKey(predicate);
+
         // Check if already queued
-        if (this.isAlreadyQueued(predicate)) {
+        if (this.isAlreadyQueued(intentionKey)) {
             console.log("Intention is already queued!");
             return;
         }
@@ -93,7 +82,6 @@ class IntentionRevision {
         const new_intention = new Intention(this, predicate);
 
         // Check for recent failures of similar intentions
-        const intentionKey = this.getIntentionKey(predicate);
         if (this.shouldSkipDueToRecentFailures(intentionKey)) {
             console.log(`Skipping intention due to recent failures: ${intentionKey}`);
             return;
@@ -153,7 +141,7 @@ class IntentionRevision {
      * @returns {boolean} True if intention2 should replace intention1
      */
     async intentionComparison(intention1, intention2) {
-        if (this.getIntentionKey(intention1.predicate) === this.getIntentionKey(intention2.predicate)) {
+        if (getIntentionKey(intention1.predicate) === getIntentionKey(intention2.predicate)) {
             console.log(`Intention comparison: Same intention, no swap needed`);
             return false; // Same intention, no swap needed
         }
@@ -163,12 +151,12 @@ class IntentionRevision {
         const score1 = calculateScore(
             intention1.predicate, 
             agent_pos, 
-            this.#failureCount.get(this.getIntentionKey(intention1.predicate)) || 0
+            this.#failureCount.get(getIntentionKey(intention1.predicate)) || 0
         );
         const score2 = calculateScore(
             intention2.predicate, 
             agent_pos, 
-            this.#failureCount.get(this.getIntentionKey(intention2.predicate)) || 0
+            this.#failureCount.get(getIntentionKey(intention2.predicate)) || 0
         );
 
         console.log(`Intention comparison: score1=${score1}, score2=${score2}`);
@@ -179,15 +167,14 @@ class IntentionRevision {
 
     /**
      * Determine if an intention should be retried based on the error
-     * @param {Intention} intention - The failed intention
+     * @param {string} intentionKey - The failed intention key
      * @param {*} error - The error that occurred
      * @returns {boolean} True if should retry
      */
-    shouldRetryIntention(intention, error) {
+    shouldRetryIntention(intentionKey, error) {
         if (!Array.isArray(error)) return false;
         
         const errorType = error[0];
-        const intentionKey = this.getIntentionKey(intention.predicate);
         const failures = this.#failureCount.get(intentionKey) || 0;
         
         // Don't retry if too many failures
@@ -195,9 +182,7 @@ class IntentionRevision {
         
         // Retry for certain error types
         const retryableErrors = [
-            'path blocked - max attempts reached',
             'tile blocked',
-            'no alternative path found',
             'movement failed'
         ];
         
@@ -211,7 +196,7 @@ class IntentionRevision {
         while (true) {
             if (this.intention_queue.length > 0) {
                 console.log("IntentionRevision.loop", this.intention_queue.map(i => i?.predicate || 'undefined'));
-
+                
                 const intention = this.intention_queue[0];
                 if (!intention) {
                     this.intention_queue.shift();
@@ -232,11 +217,13 @@ class IntentionRevision {
                 } catch (error) {
                     console.log('Failed intention:', intention.predicate, 'Error:', error);
                     
+                    const intentionKey = getIntentionKey(intention.predicate);
+
                     // Record the failure
-                    this.recordIntentionFailure(intention.predicate, error);
+                    this.recordIntentionFailure(intentionKey, error);
                     
                     // Determine if we should retry or abandon
-                    if (this.shouldRetryIntention(intention, error)) {
+                    if (this.shouldRetryIntention(intentionKey, error)) {
                         console.log('Retrying intention after brief delay');
                         // Add some delay before retry
                         await new Promise(resolve => 

@@ -28,7 +28,7 @@ class Intention {
     #parent;
 
     /**
-     * @type { Option[] } #predicate is in the form [action, x, y, parcel_id]
+     * @returns { Option[] } #predicate is in the form [action, x, y, parcel_id]
      */
     get predicate () {
         return this.#predicate;
@@ -38,6 +38,10 @@ class Intention {
      */
     #predicate;
 
+    /**
+     * @param {Object} parent - The caller of the intention
+     * @param {Option[]} predicate - The intention description, in the form [action, x, y, parcel_id]
+     */
     constructor (parent, predicate) {
         this.#parent = parent;
         this.#predicate = predicate;
@@ -54,7 +58,6 @@ class Intention {
      * Check if the intention is still valid before trying to achieve it
      * @returns {boolean}
     */
-
     isStillValid () {
         
         const [action, x, y, p_id] = this.#predicate;
