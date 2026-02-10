@@ -18,6 +18,7 @@
  * @property {number} PRV - PARCEL_REWARD_VARIANCE
  * @property {number | 'infinite'} PARCELS_MAX - Maximum number of parcels or 'infinite'
  * @property {number} PDR - PARCEL_DECAY_RATE
+ * @property {number} PENALTY - Penalty for wall/opponent collision
  */
 
 /**

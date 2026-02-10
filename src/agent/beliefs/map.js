@@ -39,19 +39,13 @@ const processMapData = (width, height, data) => {
                     }
                 }
             });
+
+            if(tile.type == DELIVERABLE_TILES)
+                constantBeliefs.map.deliverySpots.push([tile.x, tile.y]);
+            else if(tile.type == WALKABLE_SPAWNING_TILES)
+                constantBeliefs.map.parcelSpawners.push([tile.x, tile.y]);
         }
     }
-
-    /**
-     * Definition delivery spots and parcels spawner tiles
-     */
-    constantBeliefs.map.mapGraph.forEachNode((node, attributes) => {
-        if(attributes.type == DELIVERABLE_TILES)
-            constantBeliefs.map.deliverySpots.push(node.split("-"));
-        else if(attributes.type == WALKABLE_SPAWNING_TILES)
-            constantBeliefs.map.parcelSpawners.push(node.split("-"));
-    })
-
 
     console.log("Map graph -->", constantBeliefs.map.mapGraph);
     console.log("Center -->", center);
@@ -64,7 +58,7 @@ const processMapData = (width, height, data) => {
  * @param {Config} config 
  */
 const getMapConfig = (config) => {
-    // constantBeliefs.config = config;
+
     constantBeliefs.config.MOVEMENT_DURATION = config.MOVEMENT_DURATION;        // time in ms
     constantBeliefs.config.MOVEMENT_STEPS = config.MOVEMENT_STEPS;              // 1 intermediate at 0.6
     
@@ -91,11 +85,10 @@ const getMapConfig = (config) => {
         constantBeliefs.config.PARCELS_MAX = Number.MAX_VALUE
     else
         constantBeliefs.config.PARCELS_MAX = config.PARCELS_MAX;
-    // constantBeliefs.config.CLOCK = parseInt(config.CLOCK);                      // (50ms are 20frame/s)
 
     constantBeliefs.config.PDR = constantBeliefs.config.MOVEMENT_DURATION/(constantBeliefs.config.PDI*1000);    // number
-    
-    // console.log("config", config)
+
+    constantBeliefs.config.PENALTY = config.PENALTY;    // Penalty for wall/opponent collision
 }
 
 export { processMapData, getMapConfig };

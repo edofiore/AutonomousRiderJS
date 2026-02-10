@@ -33,7 +33,8 @@ const constantBeliefs = {
         PRA: null,  // PARCEL_REWARD_AVG (number)
         PRV: null,  // PARCEL_REWARD_VARIANCE (number)
         PDR: null,  // PARCEL_DECAY_RATE (number)
-        PARCELS_MAX: null   // (number or 'infinite')
+        PARCELS_MAX: null,   // (number or 'infinite')
+        PENALTY: null,   // Penalty for wall/opponent collision
     },
     map: {
         mapGraph: new UndirectedGraph(),
