@@ -23,7 +23,6 @@ class IntentionRevision {
      * @returns {boolean} True if already queued
      */
     isAlreadyQueued(intentionKey) {
-        const intentionKey = intentionKey;
         return this.intention_queue.find((i) => getIntentionKey(i.predicate) == intentionKey);
     }
 
