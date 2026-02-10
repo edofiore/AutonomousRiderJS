@@ -28,13 +28,19 @@
 
 /**
  * @global
- * @typedef {Object} Agent
- * @property {string} id - Unique agent identifier
+ * @typedef {Object} AgentInfo
  * @property {string} name - Agent name
  * @property {number} x - X coordinate
  * @property {number} y - Y coordinate
  * @property {number} score - Agent score
  * @property {number} penalty - Agent penalty
+ */
+
+
+/**
+ * @global
+ * @typedef {AgentInfo} Agent
+ * @property {string} id - Unique agent identifier
  */
 
 /**
@@ -44,9 +50,12 @@
  * @property {number} total_carried_reward - Total reward of carried parcels
  */
 
-/**
+/** 
  * @global
- * @typedef {Agent} OtherAgent
+ * @typedef {AgentInfo} AgentLog
+ * @property {string} timestamp - Timestamp of the log entry
+ * @property {string} direction - Direction of movement ('up', 'down', 'left', 'right', 'none')
+ * 
  */
 
 /**
@@ -64,7 +73,7 @@
  * @typedef {Object} Beliefs
  * @property {MeAgent} me - The agent's own data
  * @property {Map<string, Parcel>} storedParcels - A map of all known parcels
- * @property {Map<string, OtherAgent>} otherAgents - Other agents indexed by ID
+ * @property {Map<string, AgentLog>} otherAgents - Other agents indexed by ID
  * @property {*} tmpBlockedTiles - Tiles temporally blocked by other agents
  */
 
