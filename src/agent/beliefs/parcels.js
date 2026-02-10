@@ -11,9 +11,15 @@ const updatePerceivedParcels = async ( perceivedParcels ) => {
 
     // Adds new uncarried perceived parcels
     for (const p of perceivedParcels) {
+
+        // Adds parcels that are perceived and not being carried by any agent
         if( !p.carriedBy && !beliefs.storedParcels.has(p.id) ){
             beliefs.storedParcels.set( p.id, p);
-        } else if( p.carriedBy ) {
+        } 
+        
+        // Updates parcels that are now being carried
+        else if( p.carriedBy ) {
+            
             // Removes parcels that are now being carried
             if ( beliefs.storedParcels.has(p.id) ) {
                 beliefs.storedParcels.delete( p.id );
