@@ -1,5 +1,4 @@
-import {beliefs, findNearestDeliverySpot, findFurthestParcelSpawner, GO_TO, GO_DELIVER, GO_PICK_UP, isIntentionAlreadyQueued } from "../index.js"
-import { distance, getRewardAtDestination } from "../utils.js";
+import {beliefs, findNearestDeliverySpot, findFurthestParcelSpawner, GO_TO, GO_DELIVER, GO_PICK_UP, isIntentionAlreadyQueued, distance, getRewardAtDestination, getIntentionKey } from "../index.js"
 import { newAgent } from "../../autonomousRider.js";
 
 
@@ -20,10 +19,10 @@ async function optionsGeneration() {
          */
         if (!parcel.carriedBy && parcel.reward > 0) {    // TODO: Check if this is necessary, at the moment we store only free parcels
             const new_option = [GO_PICK_UP, parcel.x, parcel.y, parcel.id];
-            if (!isIntentionAlreadyQueued(intention_queue, new_option))
+            if (!isIntentionAlreadyQueued(intention_queue, getIntentionKey(new_option))) {
                 options.push(new_option);
-            // options.push([GO_PICK_UP, parcel.x, parcel.y, parcel.id]);
-        } 
+            }
+        }
     }
 
     /**
@@ -74,6 +73,17 @@ async function optionsGeneration() {
         } 
     
     }
+
+    // Deliver directly is always an option if I'm carrying parcels
+    if(beliefs.me.carried_parcels_count > 0) {
+        const best_spot = findNearestDeliverySpot(beliefs.me.x, beliefs.me.y);
+        const delivery_option = [GO_DELIVER, parseInt(best_spot.x), parseInt(best_spot.y)];
+        
+        if(!isIntentionAlreadyQueued(intention_queue, delivery_option)) {
+                options.push(delivery_option);
+        } 
+    }
+    
     console.log("OPTIONS", options)
 
     /**
@@ -139,6 +149,8 @@ const findBestOption = (options, agent) => {
 /**
  * Calculate risk penalty for a position based on nearby agents
  */
+
+// TODO we could take into account also the penalty of hitting another agent
 const calculateRiskPenalty = (position) => {
     let penalty = 0;
 
@@ -161,7 +173,7 @@ const calculateRiskPenalty = (position) => {
  */
 const calculateScore = (predicate, agent_pos, failures = undefined) => {
 
-    console.log("Calculating score for predicate:", predicate);
+    console.log("Calculating score for predicate: ", predicate);
 
     let score = 0;
 
@@ -171,7 +183,6 @@ const calculateScore = (predicate, agent_pos, failures = undefined) => {
     if (predicate[0] === GO_PICK_UP) {
         const parcel = beliefs.storedParcels.get(predicate[3]);
         if (parcel) {
-
 
             let target_reward_at_pickup = getRewardAtDestination(parcel.reward, agent_pos, target_pos);
             let carried_reward_at_pickup = getRewardAtDestination(beliefs.me.total_carried_reward, agent_pos, target_pos, beliefs.me.carried_parcels_count);
