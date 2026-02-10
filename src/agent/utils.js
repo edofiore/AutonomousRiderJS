@@ -92,10 +92,22 @@ const compareUrgency = (intention1, intention2) =>{
     return 0;
 }
 
-const isIntentionAlreadyQueued = (intention_queue, predicate) =>{
-    return intention_queue.find((i) => i.predicate.join(' ') == predicate.join(' '));
+/**
+ * Generate a unique key for an intention (for failure tracking)
+ * @param {Array} predicate - The intention predicate
+ * @returns {string} Unique key for the intention
+ */
+const getIntentionKey = (predicate) => {
+    if (predicate[0] === GO_PICK_UP && predicate[3]) {
+        return `${predicate[0]}-${predicate[3]}`; // Include parcel_id
+    }
+    return `${predicate[0]}-${predicate[1]}-${predicate[2]}`;
+}
+
+const isIntentionAlreadyQueued = (intention_queue, intentionKey) =>{
+    return intention_queue.find((i) => getIntentionKey(i.predicate) == intentionKey);
 }
 
 export { 
     GO_TO, GO_PICK_UP, GO_DELIVER, BLOCKED_TILES, WALKABLE_SPAWNING_TILES, DELIVERABLE_TILES, WALKABLE_TILES, 
-    distance, findNearestDeliverySpot, findFurthestParcelSpawner, getRewardAtDestination, compareUrgency, isIntentionAlreadyQueued};
+    distance, findNearestDeliverySpot, findFurthestParcelSpawner, getRewardAtDestination, compareUrgency, isIntentionAlreadyQueued, getIntentionKey};
