@@ -15,10 +15,6 @@ const updateInfoOtherAgents = (agents) => {
         if ( a.x % 1 != 0 || a.y % 1 != 0 ) // skip intermediate values (0.6 or 0.4)
             continue;
 
-        if ( ! beliefs.otherAgents.has( a.id ) ) {
-            beliefs.otherAgents.set(a.id, []);
-        }
-
         const log = {
             name: a.name,
             x: a.x,
@@ -29,20 +25,22 @@ const updateInfoOtherAgents = (agents) => {
             direction: 'none'
         }
 
-        const previous_logs_array = beliefs.otherAgents.get( a.id );
-
-        if ( previous_logs_array.length > 0 ) {
-            var previous = previous_logs_array.at(-1);
-            if ( previous.x < a.x ) log.direction = 'right';
-            else if ( previous.x > a.x ) log.direction = 'left';
-            else if ( previous.y < a.y ) log.direction = 'up';
-            else if ( previous.y > a.y ) log.direction = 'down';
+        if(beliefs.otherAgents.has( a.id )) {
+            const previous_log = beliefs.otherAgents.get( a.id );
+    
+            if ( previous_log != undefined ) {
+                if ( previous_log.x < a.x ) log.direction = 'right';
+                else if ( previous_log.x > a.x ) log.direction = 'left';
+                else if ( previous_log.y < a.y ) log.direction = 'up';
+                else if ( previous_log.y > a.y ) log.direction = 'down';
+            }
         }
-        beliefs.otherAgents.get( a.id ).push( log );
+        
+        beliefs.otherAgents.set( a.id, log);
 
         // compute if within perceiving area
-        let prettyPrint = Array.from(beliefs.otherAgents.values()).map( (logs) => {
-            const {timestamp,name,x,y,direction} = logs.at(-1);
+        let prettyPrint = Array.from(beliefs.otherAgents.values()).map( (log) => {
+            const {timestamp,name,x,y,direction} = log;
             const distance_from_me = distance( beliefs.me, {x,y} );
             return `${name}(${direction},${ distance_from_me < constantBeliefs.config.AOD})@${timestamp}:${x},${y}`;
         }).join(' ');

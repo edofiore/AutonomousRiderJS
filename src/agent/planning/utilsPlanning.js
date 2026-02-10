@@ -171,9 +171,8 @@ const findAlternativePath = async (current_pos, destination, avoidTile) => {
 const isTileFree = (nextCoordinates) => {
     const timestamp = Date.now();
     // Check if any other agent is currently on this tile
-    const isOccupied = [...beliefs.otherAgents?.values()].some((agent_logs) => {
-        const lastLog = agent_logs.at(-1);
-        return (lastLog.x === nextCoordinates[0] && lastLog.y === nextCoordinates[1] && (timestamp - lastLog.timestamp) < constantBeliefs.config.MOVEMENT_DURATION * 2);
+    const isOccupied = [...beliefs.otherAgents?.values()].some((agent_log) => {
+        return (agent_log.x === nextCoordinates[0] && agent_log.y === nextCoordinates[1] && (timestamp - agent_log.timestamp) < constantBeliefs.config.MOVEMENT_DURATION * 2);
     });
     
     return !isOccupied;
@@ -195,9 +194,8 @@ const findSafestPath = async (current_pos, destination) => {
             const coords = tile.split('-').map(Number);
             
             // Check if any agent is moving towards this tile
-            return [...beliefs.otherAgents?.values()]?.flat().some(agent_logs => {
-                const lastLog = agent_logs[agent_logs.length - 1];
-                const agentCoords = [Math.floor(lastLog.x), Math.floor(lastLog.y)];
+            return [...beliefs.otherAgents?.values()]?.some(agent_log => {
+                const agentCoords = [Math.floor(agent_log.x), Math.floor(agent_log.y)];
                 const distance = Math.abs(agentCoords[0] - coords[0]) + Math.abs(agentCoords[1] - coords[1]);
                 
                 // Consider tiles that are close to other agents as risky

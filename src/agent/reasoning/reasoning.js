@@ -144,10 +144,9 @@ const calculateRiskPenalty = (position) => {
 
     const distance_from_me = distance(position, { x: beliefs.me.x, y: beliefs.me.y });
 
-    for (const opponent_history of beliefs.otherAgents?.values() || []) {
-        const latest_opponent_info = opponent_history[opponent_history.length - 1]; // Get the most recent position of the agent
+    for (const opponent_log of beliefs.otherAgents?.values()) {
 
-        const opponent_distance = distance(position, { x: latest_opponent_info.x, y: latest_opponent_info.y });
+        const opponent_distance = distance(position, { x: opponent_log.x, y: opponent_log.y });
         // Only consider agents that are closer to the target than me and within a certain range
         if (opponent_distance < distance_from_me && distance_from_me <= 5) { 
             penalty += 10; // Higher penalty for closer agents

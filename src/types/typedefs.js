@@ -34,6 +34,7 @@
  * @property {number} x - X coordinate
  * @property {number} y - Y coordinate
  * @property {number} score - Agent score
+ * @property {number} penalty - Agent penalty
  */
 
 /**
@@ -45,8 +46,7 @@
 
 /**
  * @global
- * @typedef {MeAgent} OtherAgent
- * 
+ * @typedef {Agent} OtherAgent
  */
 
 /**
@@ -64,7 +64,7 @@
  * @typedef {Object} Beliefs
  * @property {MeAgent} me - The agent's own data
  * @property {Map<string, Parcel>} storedParcels - A map of all known parcels
- * @property {Map<string, Agent[]>} otherAgents - Other agents indexed by ID
+ * @property {Map<string, OtherAgent>} otherAgents - Other agents indexed by ID
  * @property {*} tmpBlockedTiles - Tiles temporally blocked by other agents
  */
 
