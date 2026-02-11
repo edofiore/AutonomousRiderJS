@@ -10,6 +10,9 @@ const WALKABLE_SPAWNING_TILES = 1;  // '1' are walkable spawning tiles
 const DELIVERABLE_TILES = 2;    // '2' are delivery tiles
 const WALKABLE_TILES = 3;   // '3' are walkable non-spawning tiles
 
+const DEFAULT_STOP_CODE = -1; // Default code for stopped intentions
+const QUEUE_SWAP_STOP_CODE = -2; // Special code for intentions stopped due to queue swapping (to avoid counting them as failures in intention revision)
+
 /**
  * Function to compute the distance (number of cells/steps) between 2 cells
  * @param {{x:number, y:number}} current_pos - Current Position
@@ -109,5 +112,5 @@ const isIntentionAlreadyQueued = (intention_queue, intentionKey) =>{
 }
 
 export { 
-    GO_TO, GO_PICK_UP, GO_DELIVER, BLOCKED_TILES, WALKABLE_SPAWNING_TILES, DELIVERABLE_TILES, WALKABLE_TILES, 
+    GO_TO, GO_PICK_UP, GO_DELIVER, BLOCKED_TILES, WALKABLE_SPAWNING_TILES, DELIVERABLE_TILES, WALKABLE_TILES, DEFAULT_STOP_CODE, QUEUE_SWAP_STOP_CODE,
     distance, findNearestDeliverySpot, findFurthestParcelSpawner, getRewardAtDestination, compareUrgency, isIntentionAlreadyQueued, getIntentionKey};

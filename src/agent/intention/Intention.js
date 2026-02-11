@@ -4,22 +4,22 @@
 
 import { beliefs } from "../beliefs/beliefs.js";
 import { planLibrary } from "../planning/index.js";
-import { GO_DELIVER, GO_PICK_UP, GO_TO } from "../utils.js";
+import { GO_DELIVER, GO_PICK_UP, DEFAULT_STOP_CODE } from "../utils.js";
 
 class Intention {
     // Plan currently used for achieving the intention
     #current_plan;
 
     // This is used to stop the intention
-    #stopped = false;
+    #stopped = 0; // false
     get stopped () {
         return this.#stopped;
     }
-    async stop () {
-        this.log( 'stop intention', ...this.#predicate );
-        this.#stopped = true;
+    async stop (stopCode) {
+        this.log( 'stop intention', ...this.#predicate, 'with error code', stopCode);
+        this.#stopped = stopCode || DEFAULT_STOP_CODE;
         if (this.#current_plan)
-            await this.#current_plan.stop();
+            await this.#current_plan.stop(stopCode);
     }
 
     /**
@@ -105,7 +105,7 @@ class Intention {
         for (const planClass of planLibrary) {
             
             // if stopped then quit
-            if (this.stopped) throw ['stopped intention', ...this.predicate];
+            if (this.stopped) throw ['stopped intention', this.stopped, ...this.predicate];
             
             // if plan is 'statically' applicable
             if (planClass.isApplicableTo(...this.predicate)) {
@@ -127,7 +127,7 @@ class Intention {
         }
 
         // If stopped then quit
-        if (this.stopped) throw ['stopped intention', ...this.predicate];
+        if (this.stopped) throw ['stopped intention', this.stopped, ...this.predicate];
 
         // No plans have been found to satisfy the intention
         // this.log( 'no plan satisfied the intention ', ...this.predicate );

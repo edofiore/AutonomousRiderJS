@@ -76,7 +76,7 @@ async function optionsGeneration() {
 
     // Deliver directly is always an option if I'm carrying parcels
     if(beliefs.me.carried_parcels_count > 0) {
-        const best_spot = findNearestDeliverySpot(beliefs.me.x, beliefs.me.y);
+        const best_spot = findNearestDeliverySpot({x: beliefs.me.x, y: beliefs.me.y});
         const delivery_option = [GO_DELIVER, parseInt(best_spot.x), parseInt(best_spot.y)];
         
         if(!isIntentionAlreadyQueued(intention_queue, delivery_option)) {

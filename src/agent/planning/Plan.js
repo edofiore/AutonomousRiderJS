@@ -1,4 +1,4 @@
-import { Intention } from "../index.js";
+import { Intention, DEFAULT_STOP_CODE } from "../index.js";
 
 export class Plan {
 
@@ -12,13 +12,13 @@ export class Plan {
     }
     
     // This is used to stop the plan
-    #stopped = false;   // private
+    #stopped = 0; // false
 
-    async stop () {
-        this.log('Stop plan');
-        this.#stopped = true;
+    async stop (stopCode) {
+        this.log('Stop plan with stop code:', stopCode);
+        this.#stopped = stopCode || DEFAULT_STOP_CODE;
         for(const i of this.#sub_intentions) {
-            await i.stop();
+            await i.stop(stopCode);
         }
     }
 

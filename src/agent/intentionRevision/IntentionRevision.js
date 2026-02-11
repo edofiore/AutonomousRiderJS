@@ -1,4 +1,4 @@
-import { beliefs, constantBeliefs, Intention, GO_TO, GO_DELIVER, GO_PICK_UP, calculateScore, optionsGeneration, getIntentionKey } from "../index.js";
+import { beliefs, constantBeliefs, Intention, GO_TO, GO_DELIVER, GO_PICK_UP, calculateScore, optionsGeneration, getIntentionKey, QUEUE_SWAP_STOP_CODE } from "../index.js";
 
 /**
  * Unified IntentionRevision class for BDI architecture
@@ -24,30 +24,6 @@ class IntentionRevision {
      */
     isAlreadyQueued(intentionKey) {
         return this.intention_queue.find((i) => getIntentionKey(i.predicate) == intentionKey);
-    }
-
-    /**
-     * Check if intention should be skipped due to recent failures
-     * @param {string} intentionKey - The intention key
-     * @returns {boolean} True if should skip
-     */
-    shouldSkipDueToRecentFailures(intentionKey) {
-        const failure_count = this.#failureCount.get(intentionKey) || 0;
-        const last_failure_time = this.#lastFailureTime.get(intentionKey) || 0;
-        const time_since_failure = Date.now() - last_failure_time;
-        
-        // Skip if too many recent failures (3+ in last 30 seconds)
-        if (failure_count >= 3 && time_since_failure < 30000) {
-            return true;
-        }
-        
-        // Reset counter after 30 seconds
-        if (time_since_failure >= 30000) {
-            this.#failureCount.delete(intentionKey);
-            this.#lastFailureTime.delete(intentionKey);
-        }
-        
-        return false;
     }
 
     /**
@@ -189,6 +165,30 @@ class IntentionRevision {
     }
 
     /**
+     * Check if intention should be skipped due to recent failures
+     * @param {string} intentionKey - The intention key
+     * @returns {boolean} True if should skip
+     */
+    shouldSkipDueToRecentFailures(intentionKey) {
+        const failure_count = this.#failureCount.get(intentionKey) || 0;
+        const last_failure_time = this.#lastFailureTime.get(intentionKey) || 0;
+        const time_since_failure = Date.now() - last_failure_time;
+        
+        // Skip if too many recent failures (3+ in last 30 seconds)
+        if (failure_count >= 3 && time_since_failure < 30000) {
+            return true;
+        }
+        
+        // Reset counter after 5 seconds
+        if (time_since_failure >= 5000) {
+            this.#failureCount.delete(intentionKey);
+            this.#lastFailureTime.delete(intentionKey);
+        }
+        
+        return false;
+    }
+
+    /**
      * Enhanced main loop with error handling and replanning
      */
     async loop() {
@@ -219,7 +219,9 @@ class IntentionRevision {
                     const intentionKey = getIntentionKey(intention.predicate);
 
                     // Record the failure
-                    this.recordIntentionFailure(intentionKey, error);
+                    if(error[1] != QUEUE_SWAP_STOP_CODE) { // Don't record as failure if we intentionally stopped for a queue swap
+                        this.recordIntentionFailure(intentionKey, error);
+                    }
                     
                     // Determine if we should retry or abandon
                     if (this.shouldRetryIntention(intentionKey, error)) {
@@ -236,7 +238,11 @@ class IntentionRevision {
                 this.intention_queue.shift();
             } else {
                 // Queue is empty, generate new options
-                optionsGeneration();
+                try {
+                    await optionsGeneration();
+                } catch (e) {
+                    console.log('optionsGeneration error:', e);
+                }
             }
 
             // Postpone next iteration
@@ -262,7 +268,7 @@ class IntentionRevision {
             // Stop the current intention at position 0
             try {
                 if (this.intention_queue[index]) {
-                    await this.intention_queue[index].stop();
+                    await this.intention_queue[index].stop(QUEUE_SWAP_STOP_CODE);
                     console.log(`Stopped intention ${currentIntention?.predicate || 'undefined'} at index 0`);
                 }
             } catch (error) {
