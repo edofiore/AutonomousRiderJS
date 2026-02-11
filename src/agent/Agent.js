@@ -6,9 +6,15 @@ class Agent {
         this.intentionRevision = new IntentionRevision();
     }
 
+    //async start () {
+    //    console.log("Creating new agent...")
+    //    this.intentionRevision.loop();  // Start intentions loop
+    //}
+
     async start () {
         console.log("Creating new agent...")
-        this.intentionRevision.loop();  // Start intentions loop
+        this.intentionRevision.loop().catch(e => console.error('Intention loop crashed:', e)
+        );
     }
 
     async push (predicate) {

@@ -62,12 +62,24 @@ await Promise.race([
 /**
  * Generate options at every sensing event
  */
-setInterval(() => {
-    client.onParcelsSensing( async () => await optionsGeneration() );
-    client.onAgentsSensing( async () => await optionsGeneration() );
-    // client.onYou( async () => await optionsGeneration() );
-    }, 1000
-)
+
+client.onParcelsSensing(async (parcels) => {
+    await updatePerceivedParcels(parcels);
+    try {
+        await optionsGeneration();
+    } catch (e) {
+        console.log('optionsGeneration error on parcels:', e);
+    }
+});
+
+client.onAgentsSensing(async (agents) => {
+    updateInfoOtherAgents(agents);
+    try {
+        await optionsGeneration();
+    } catch (e) {
+        console.log('optionsGeneration error on agents:', e);
+    }
+});
 
 // Function to trigger the agent when parcels are sensed 
 newAgent.start();
