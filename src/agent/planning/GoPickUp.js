@@ -30,7 +30,7 @@ class GoPickUp extends Plan {
     async execute (go_pick_up, x, y, id) {
         console.log("Executing enhanced go_pick_up with path optimization...");
         
-        let mainParcel = beliefs?.storedParcels.get(id);
+        let mainParcel = beliefs?.storedParcels.get(id)?.parcel;
         if (!mainParcel || mainParcel.carriedBy) {
             throw ['Main parcel is no longer available', id];
         }
@@ -51,7 +51,7 @@ class GoPickUp extends Plan {
             if (this.stopped) throw ['stopped'];
             
             // Check if parcel is still available
-            const currentParcel = beliefs.storedParcels.get(pathParcel.id);
+            const currentParcel = beliefs.storedParcels.get(pathParcel.id)?.parcel;
             if (currentParcel && !currentParcel.carriedBy && currentParcel.reward > 0) {
                 console.log(`Picking up parcel ${pathParcel.id} in { ${currentParcel.x},${currentParcel.y} } along the path (reward: ${currentParcel.reward})`);
                 
@@ -62,7 +62,7 @@ class GoPickUp extends Plan {
                     if (this.stopped) throw ['stopped'];
                     
                     // Verify parcel is still there and pick it up
-                    const finalCheck = beliefs.storedParcels.get(pathParcel.id);
+                    const finalCheck = beliefs.storedParcels.get(pathParcel.id)?.parcel;
                     if (finalCheck && !finalCheck.carriedBy) {
                         await client.emitPickup();
                         console.log(`Successfully picked up parcel ${pathParcel.id}`);
@@ -79,7 +79,7 @@ class GoPickUp extends Plan {
         if (this.stopped) throw ['stopped'];
 
         // Finally, go to the main target parcel
-        mainParcel = beliefs.storedParcels.get(id);
+        mainParcel = beliefs.storedParcels.get(id)?.parcel;
         if (!mainParcel || mainParcel.carriedBy) {
             throw ['Main parcel is no longer available', id];
         }
@@ -90,7 +90,7 @@ class GoPickUp extends Plan {
         if (this.stopped) throw ['stopped'];
 
         // Pick up the main target parcel
-        const finalMainParcel = beliefs.storedParcels.get(id);
+        const finalMainParcel = beliefs.storedParcels.get(id)?.parcel;
         if (!finalMainParcel || finalMainParcel.carriedBy) {
             throw ['Main parcel is no longer available', id];
         }
@@ -120,8 +120,10 @@ class GoPickUp extends Plan {
             const minRewardThreshold = 1; // Minimum reward to consider picking up
 
             // Check each available parcel
-            for (const [parcelId, parcel] of beliefs.storedParcels.entries()) {
+            for (const [parcelId, parcelData] of beliefs.storedParcels.entries()) {
                 // Skip if it's the main target, already carried, or has no reward
+                const parcel = parcelData.parcel;
+
                 if (parcelId === mainParcelId || 
                     parcel.carriedBy || 
                     parcel.reward < minRewardThreshold) {

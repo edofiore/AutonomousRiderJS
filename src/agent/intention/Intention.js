@@ -65,7 +65,7 @@ class Intention {
         console.log(`Is intention ${action} ${x}-${y} still valid?`);
 
         if(action == GO_PICK_UP) {
-            let p = beliefs.storedParcels.get(p_id);
+            let p = beliefs.storedParcels.get(p_id)?.parcel;
 
             if (!p || p.carriedBy || p.reward <= 0) {
                 console.log(`Parcel at ${x},${y} is either no longer available or carried by someone!`);

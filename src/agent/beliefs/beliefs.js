@@ -13,8 +13,8 @@ const beliefs = {
         carried_parcels_count: null,    // Number of parcels the agent is carrying
         total_carried_reward: null     // Total reward the agent is carrying
     },
-    storedParcels: new Map(),
-    otherAgents: new Map(), // Map of <agentId, [name, x, y, score, penalty, timestamp, direction]>
+    storedParcels: new Map(), // Map of < parcelId, {{ id, x, y, carriedBy, reward }, timestamp, visible } >
+    otherAgents: new Map(), // Map of < agentId, { name, x, y, score, penalty, timestamp, direction } >
     tmpBlockedTiles: [],
 }
 

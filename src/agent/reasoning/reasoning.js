@@ -13,7 +13,8 @@ async function optionsGeneration() {
     const options = [];
 
     // For each
-    for (const parcel of beliefs.storedParcels.values()) {
+    for (const parcel_data of beliefs.storedParcels.values()) {
+        const parcel = parcel_data.parcel;
         /**
          * TODO: use finalReward instead of parcel reward
          */
@@ -181,7 +182,7 @@ const calculateScore = (predicate, agent_pos, failures = undefined) => {
 
     // Base reward factor
     if (predicate[0] === GO_PICK_UP) {
-        const parcel = beliefs.storedParcels.get(predicate[3]);
+        const parcel = beliefs.storedParcels.get(predicate[3])?.parcel;
         if (parcel) {
 
             let target_reward_at_pickup = getRewardAtDestination(parcel.reward, agent_pos, target_pos);

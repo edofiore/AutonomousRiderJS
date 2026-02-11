@@ -71,9 +71,17 @@
 
 /**
  * @global
+ * @typedef {Object} ParcelData
+ * @property {Parcel} parcel - The parcel object
+ * @property {string} timestamp - Timestamp of when the parcel was first perceived
+ * @property {Boolean} visible - Whether the parcel is currently visible 
+ */
+
+/**
+ * @global
  * @typedef {Object} Beliefs
  * @property {MeAgent} me - The agent's own data
- * @property {Map<string, Parcel>} storedParcels - A map of all known parcels
+ * @property {Map<string, ParcelData>} storedParcels - A map of all known parcels
  * @property {Map<string, AgentLog>} otherAgents - Other agents indexed by ID
  * @property {*} tmpBlockedTiles - Tiles temporally blocked by other agents
  */
