@@ -174,13 +174,13 @@ class IntentionRevision {
         const last_failure_time = this.#lastFailureTime.get(intentionKey) || 0;
         const time_since_failure = Date.now() - last_failure_time;
         
-        // Skip if too many recent failures (3+ in last 30 seconds)
-        if (failure_count >= 3 && time_since_failure < 30000) {
+        // Skip if too many recent failures (3+ in last 10 seconds)
+        if (failure_count >= 3 && time_since_failure < 10000) {
             return true;
         }
         
-        // Reset counter after 5 seconds
-        if (time_since_failure >= 5000) {
+        // Reset counter after 10 seconds
+        if (time_since_failure >= 10000) {
             this.#failureCount.delete(intentionKey);
             this.#lastFailureTime.delete(intentionKey);
         }

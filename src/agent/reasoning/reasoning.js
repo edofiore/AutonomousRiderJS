@@ -142,7 +142,7 @@ const findBestOption = (options, agent) => {
         }
     }
 
-    console.log("Best option found:", best_option, "with reward:", best_reward, "length was", options.length);
+    console.log("Best option found:", best_option, "with reward:", best_reward, "options array length:", options.length);
 
     return best_option;
 };
@@ -179,6 +179,7 @@ const calculateScore = (predicate, agent_pos, failures = undefined) => {
     let score = 0;
 
     let target_pos = { x: predicate[1], y: predicate[2] };
+    let failure_penalty_multiplier = 1;
 
     // Base reward factor
     if (predicate[0] === GO_PICK_UP) {
@@ -194,11 +195,13 @@ const calculateScore = (predicate, agent_pos, failures = undefined) => {
 
             score += total_reward_at_delivery;
         }
+        failure_penalty_multiplier = 10;
     } else if (predicate[0] === GO_DELIVER) {
 
         let total_reward_at_delivery = getRewardAtDestination(beliefs.me.total_carried_reward, agent_pos, target_pos, beliefs.me.carried_parcels_count);
 
         score += total_reward_at_delivery;
+        failure_penalty_multiplier = total_reward_at_delivery / 3; // The penalty is proportional to the reward I'm going to lose if I fail to deliver
     }
 
     // Risk factor (penalize if area has many agents)
@@ -207,7 +210,7 @@ const calculateScore = (predicate, agent_pos, failures = undefined) => {
 
     if (failures !== undefined) {
         // Failure history penalty, valid just for intention
-        score -= failures * 10;
+        score -= (failures * failure_penalty_multiplier);
     }
 
     return score;
