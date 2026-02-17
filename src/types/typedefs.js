@@ -84,6 +84,7 @@
  * @property {Map<string, ParcelData>} storedParcels - A map of all known parcels
  * @property {Map<string, AgentLog>} otherAgents - Other agents indexed by ID
  * @property {*} tmpBlockedTiles - Tiles temporally blocked by other agents
+ * @property {Map<string, number>} invalidOptions - Map of intention keys to timestamps for invalid options
  */
 
 /**

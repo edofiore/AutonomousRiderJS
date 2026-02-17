@@ -39,6 +39,11 @@ class IntentionRevision {
         
         console.log(`Recorded failure for ${intentionKey}: ${currentFailures + 1} total failures`);
         console.log(`Failure reason: `, error);
+
+        if(this.#failureCount.get(intentionKey) >= 5) {
+            console.log(`Intention ${intentionKey} has failed 5 or more times. Marking as invalid for 10 seconds.`);
+            beliefs.invalidOptions.set(intentionKey, Date.now());
+        }
     }
 
     /**
@@ -56,12 +61,6 @@ class IntentionRevision {
         
         const new_intention = new Intention(this, predicate);
 
-        // Check for recent failures of similar intentions
-        if (this.shouldSkipDueToRecentFailures(intentionKey)) {
-            console.log(`Skipping intention due to recent failures: ${intentionKey}`);
-            return;
-        }
-
         if (this.intention_queue[0]) {
             // Enhanced decision making for intention management
             await this.handleExistingIntentions(new_intention);
@@ -71,7 +70,7 @@ class IntentionRevision {
             console.log("Added intention to empty queue:", new_intention.predicate);
         }
         
-        console.log("QUEUE:", this.intention_queue.map(intention => intention?.predicate || 'undefined'));
+        console.log("CURRENT QUEUE:", this.intention_queue.map(intention => intention?.predicate || 'undefined'));
     }
 
     /**
@@ -153,7 +152,7 @@ class IntentionRevision {
         const failures = this.#failureCount.get(intentionKey) || 0;
         
         // Don't retry if too many failures
-        if (failures >= 3) return false;
+        if (failures >= 5) return false;
         
         // Retry for certain error types
         const retryableErrors = [
@@ -162,30 +161,6 @@ class IntentionRevision {
         ];
         
         return retryableErrors.includes(errorType);
-    }
-
-    /**
-     * Check if intention should be skipped due to recent failures
-     * @param {string} intentionKey - The intention key
-     * @returns {boolean} True if should skip
-     */
-    shouldSkipDueToRecentFailures(intentionKey) {
-        const failure_count = this.#failureCount.get(intentionKey) || 0;
-        const last_failure_time = this.#lastFailureTime.get(intentionKey) || 0;
-        const time_since_failure = Date.now() - last_failure_time;
-        
-        // Skip if too many recent failures (3+ in last 10 seconds)
-        if (failure_count >= 3 && time_since_failure < 10000) {
-            return true;
-        }
-        
-        // Reset counter after 10 seconds
-        if (time_since_failure >= 10000) {
-            this.#failureCount.delete(intentionKey);
-            this.#lastFailureTime.delete(intentionKey);
-        }
-        
-        return false;
     }
 
     /**

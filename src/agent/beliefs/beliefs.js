@@ -16,6 +16,7 @@ const beliefs = {
     storedParcels: new Map(), // Map of < parcelId, {{ id, x, y, carriedBy, reward }, timestamp, visible } >
     otherAgents: new Map(), // Map of < agentId, { name, x, y, score, penalty, timestamp, direction } >
     tmpBlockedTiles: [],
+    invalidOptions: new Map(), // Map of <intentionKey, timestamp> to keep track of invalid options and avoid generating them
 }
 
 
