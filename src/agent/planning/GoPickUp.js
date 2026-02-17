@@ -1,31 +1,11 @@
-import { Plan } from "./index.js";
+import { Plan, GO_PICK_UP, distance, beliefs, updateStoredParcels } from "../index.js";
 import { findBestPath } from "./utilsPlanning.js";
 import { client } from "../../config/index.js";
-import { GO_PICK_UP, distance } from "../utils.js";
-import { beliefs } from "../beliefs/beliefs.js";
 
 class GoPickUp extends Plan {
     static isApplicableTo (go_pick_up, x, y, id) {
         return go_pick_up == GO_PICK_UP;
     }
-
-    // async execute (go_pick_up, x, y, id) {
-    //     console.log("Executing go_pick_up...")
-    //     let parcel = beliefs?.storedParcels.get(id);
-    //     if (!parcel || parcel.carriedBy) {
-    //         throw ['Parcel is no longer available', id];
-    //     }        
-    //     if (this.stopped) throw ['stopped']; // if stopped then quit
-    //     await this.subIntention( ['go_to', x, y]);
-    //     if (this.stopped) throw ['stopped']; // if stopped then quit
-    //     parcel = beliefs.storedParcels.get(id);
-    //     if (!parcel || parcel.carriedBy) {
-    //         throw ['Parcel is no longer available', id];
-    //     }        
-    //     await client.emitPickup();
-    //     if (this.stopped) throw ['stopped']; // if stopped then quit
-    //     return true;    
-    // }
 
     async execute (go_pick_up, x, y, id) {
         console.log("Executing enhanced go_pick_up with path optimization...");
@@ -36,6 +16,8 @@ class GoPickUp extends Plan {
         }
 
         if (this.stopped) throw ['stopped'];
+
+        updateStoredParcels(); // Ensure we have the latest info on parcels
 
         // Find parcels along the path to the main target
         const parcelsAlongPath = await this.findParcelsAlongPath(
@@ -74,6 +56,8 @@ class GoPickUp extends Plan {
                     // Continue with the next parcel, don't abort the whole plan
                 }
             }
+
+            updateStoredParcels(); // Ensure we have the latest info on parcels
         }
 
         if (this.stopped) throw ['stopped'];

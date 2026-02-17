@@ -57,4 +57,21 @@ const updatePerceivedParcels = async ( perceivedParcels ) => {
     }
 }
 
-export { updatePerceivedParcels };
+const updateStoredParcels = async () => {
+    for (const parcel_data of beliefs.storedParcels.values()) {
+        if (parcel_data.parcel.carriedBy ) {
+            beliefs.storedParcels.delete(parcel_data.parcel.id);
+        } else {
+            let now = Date.now();
+            let parcel_current_reward = parcel_data.parcel.reward - parseInt(( (now - parcel_data.timestamp) / 1000 ) / constantBeliefs.PDI);
+
+            if(parcel_current_reward < 0) {
+                beliefs.storedParcels.delete(parcel_data.parcel.id);
+            } else {
+                beliefs.storedParcels.set(parcel_data.parcel.id, { ...parcel_data, parcel: { ...parcel_data.parcel, reward: parcel_current_reward } });
+            }
+        }
+    }
+}
+
+export { updatePerceivedParcels, updateStoredParcels };
