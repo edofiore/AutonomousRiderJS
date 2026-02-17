@@ -8,7 +8,6 @@ import { beliefs, constantBeliefs } from "./index.js";
 
 const start = Date.now();
 const updateInfoOtherAgents = (agents) => {
-    console.log("AGENTS", agents.map((agent) => agent))
 
     const timestamp = Date.now() - start;
     for(const a of agents) {
