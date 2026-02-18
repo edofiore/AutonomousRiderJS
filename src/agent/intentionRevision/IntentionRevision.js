@@ -232,8 +232,8 @@ class IntentionRevision {
      */
     async putInTheQueue(index, new_intention) {
         // Check if the index is valid
-        if (index < 0 || index >= this.intention_queue.length) {
-            console.log(`Invalid index ${index}. Queue length: ${this.intention_queue.length}`);
+        if (index < 0) {
+            console.log(`Invalid index ${index}.`);
             return;
         }
 
