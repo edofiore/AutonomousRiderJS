@@ -1,10 +1,6 @@
 import { beliefs } from "./index.js"
 
 /**
- * @type { MeAgent }
- */
-
-/**
  * Update the main info about the agent 
  * @param { Agent } - {id, name, x, y, score}
  */
