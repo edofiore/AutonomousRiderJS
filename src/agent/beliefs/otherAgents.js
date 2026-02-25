@@ -1,12 +1,12 @@
 import { distance } from "../index.js";
 import { beliefs, constantBeliefs } from "./index.js";
 
+const start = Date.now();
+
 /**
  * Update the info about the other perceived agents
- * @param {MeAgent} agents 
+ * @param {Agent[]} agents 
  */
-
-const start = Date.now();
 const updateInfoOtherAgents = (agents) => {
 
     const timestamp = Date.now() - start;
@@ -24,15 +24,12 @@ const updateInfoOtherAgents = (agents) => {
             direction: 'none'
         }
 
-        if(beliefs.otherAgents.has( a.id )) {
-            const previous_log = beliefs.otherAgents.get( a.id );
-    
-            if ( previous_log != undefined ) {
-                if ( previous_log.x < a.x ) log.direction = 'right';
-                else if ( previous_log.x > a.x ) log.direction = 'left';
-                else if ( previous_log.y < a.y ) log.direction = 'up';
-                else if ( previous_log.y > a.y ) log.direction = 'down';
-            }
+        const previous_log = beliefs.otherAgents.get( a.id );    
+        if ( previous_log ) {
+            if ( previous_log.x < a.x ) log.direction = 'right';
+            else if ( previous_log.x > a.x ) log.direction = 'left';
+            else if ( previous_log.y < a.y ) log.direction = 'up';
+            else if ( previous_log.y > a.y ) log.direction = 'down';
         }
         
         beliefs.otherAgents.set( a.id, log);
