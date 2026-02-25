@@ -42,7 +42,7 @@ const updatePerceivedParcels = async ( perceivedParcels ) => {
     for ( const parcel_data of beliefs.storedParcels.values() ) {
 
         if ( perceivedParcels.map( p => p.id ).find( id => id == parcel_data.parcel.id ) == undefined ) {
-            let parcel_current_reward = parcel_data.parcel.reward - parseInt(( (now - parcel_data.timestamp) / 1000 ) / constantBeliefs.PDI);
+            let parcel_current_reward = parcel_data.parcel.reward - parseInt(( (now - parcel_data.timestamp) / 1000 ) / constantBeliefs.config.PDI);
 
             if(parcel_current_reward < 0) {
                 beliefs.storedParcels.delete(parcel_data.parcel.id);
@@ -63,7 +63,7 @@ const updateStoredParcels = async () => {
             beliefs.storedParcels.delete(parcel_data.parcel.id);
         } else {
             let now = Date.now();
-            let parcel_current_reward = parcel_data.parcel.reward - parseInt(( (now - parcel_data.timestamp) / 1000 ) / constantBeliefs.PDI);
+            let parcel_current_reward = parcel_data.parcel.reward - parseInt(( (now - parcel_data.timestamp) / 1000 ) / constantBeliefs.config.PDI);
 
             if(parcel_current_reward < 0) {
                 beliefs.storedParcels.delete(parcel_data.parcel.id);
