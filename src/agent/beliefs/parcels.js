@@ -9,7 +9,7 @@ const updatePerceivedParcels = async ( perceivedParcels ) => {
     let current_carried_parcels = 0;
     let current_carried_reward = 0;
 
-    let now = Date.now();
+    const now = Date.now();
 
     // Adds new uncarried perceived parcels
     for (const p of perceivedParcels) {
@@ -17,15 +17,11 @@ const updatePerceivedParcels = async ( perceivedParcels ) => {
         // Adds parcels that are perceived and not being carried by any agent
         if( !p.carriedBy ){
             beliefs.storedParcels.set( p.id, { parcel: p, timestamp: now, visible: true} );
-        }
-        
+        } 
         // Updates parcels that are now being carried
-        else if( p.carriedBy ) {
-            
+        else {
             // Removes parcels that are now being carried
-            if ( beliefs.storedParcels.has(p.id) ) {
-                beliefs.storedParcels.delete( p.id );
-            }
+            beliefs.storedParcels.delete(p.id);
 
             // Update info about the parcels I'm carrying
             if ( p.carriedBy == beliefs.me.id ) {
@@ -42,7 +38,7 @@ const updatePerceivedParcels = async ( perceivedParcels ) => {
     for ( const parcel_data of beliefs.storedParcels.values() ) {
 
         if ( perceivedParcels.map( p => p.id ).find( id => id == parcel_data.parcel.id ) == undefined ) {
-            let parcel_current_reward = parcel_data.parcel.reward - parseInt(( (now - parcel_data.timestamp) / 1000 ) / constantBeliefs.PDI);
+            let parcel_current_reward = parcel_data.parcel.reward - parseInt(( (now - parcel_data.timestamp) / 1000 ) / constantBeliefs.config.PDI);
 
             if(parcel_current_reward < 0) {
                 beliefs.storedParcels.delete(parcel_data.parcel.id);
@@ -63,7 +59,7 @@ const updateStoredParcels = async () => {
             beliefs.storedParcels.delete(parcel_data.parcel.id);
         } else {
             let now = Date.now();
-            let parcel_current_reward = parcel_data.parcel.reward - parseInt(( (now - parcel_data.timestamp) / 1000 ) / constantBeliefs.PDI);
+            let parcel_current_reward = parcel_data.parcel.reward - parseInt(( (now - parcel_data.timestamp) / 1000 ) / constantBeliefs.config.PDI);
 
             if(parcel_current_reward < 0) {
                 beliefs.storedParcels.delete(parcel_data.parcel.id);

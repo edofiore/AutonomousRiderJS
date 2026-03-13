@@ -17,34 +17,35 @@ let center = { x:Number.MAX_VALUE, y:Number.MAX_VALUE};
 const processMapData = (width, height, data) => {
     mapWidth = width;
     mapHeight = height;
-    let nodeId = new String;
 
     // Add every tile to the graph
     for(let tile of data){
-        nodeId = tile.x + "-" + tile.y;
-        if(tile.type != BLOCKED_TILES && !constantBeliefs.map.mapGraph.hasNode(nodeId)) {
-            constantBeliefs.map.mapGraph.addNode(nodeId, { x:tile.x, y:tile.y, type:tile.type});
-            if(tile.x < mapWidth/2){
-                if(Math.abs(center.x - Math.floor(mapWidth/2)) > Math.abs(tile.x - Math.floor(mapWidth/2)) 
-                    && Math.abs(center.y - Math.floor(mapHeight/2)) > Math.abs(tile.y - Math.floor(mapHeight/2))){
-                    center.x = Math.floor(tile.x);
-                    center.y = Math.floor(tile.y);
+        const nodeId = tile.x + "-" + tile.y;
+        if(tile.type == BLOCKED_TILES || constantBeliefs.map.mapGraph.hasNode(nodeId)) {
+            continue;
+        }
+
+        constantBeliefs.map.mapGraph.addNode(nodeId, { x:tile.x, y:tile.y, type:tile.type});
+        if(tile.x < mapWidth/2){
+            if(Math.abs(center.x - Math.floor(mapWidth/2)) > Math.abs(tile.x - Math.floor(mapWidth/2)) 
+                && Math.abs(center.y - Math.floor(mapHeight/2)) > Math.abs(tile.y - Math.floor(mapHeight/2))){
+                center.x = Math.floor(tile.x);
+                center.y = Math.floor(tile.y);
+            }
+        }
+        constantBeliefs.map.mapGraph.forEachNode((node, attributes) => {
+            if(node != nodeId){
+                if((attributes.x == tile.x && (attributes.y == tile.y+1 || attributes.y == tile.y-1)) 
+                    || (attributes.y == tile.y && (attributes.x == tile.x+1 || attributes.x == tile.x-1))){
+                    constantBeliefs.map.mapGraph.addUndirectedEdge(nodeId,node);
                 }
             }
-            constantBeliefs.map.mapGraph.forEachNode((node, attributes) => {
-                if(node != nodeId){
-                    if((attributes.x == tile.x && (attributes.y == tile.y+1 || attributes.y == tile.y-1)) 
-                        || (attributes.y == tile.y && (attributes.x == tile.x+1 || attributes.x == tile.x-1))){
-                        constantBeliefs.map.mapGraph.addUndirectedEdge(nodeId,node);
-                    }
-                }
-            });
+        });
 
-            if(tile.type == DELIVERABLE_TILES)
-                constantBeliefs.map.deliverySpots.push([tile.x, tile.y]);
-            else if(tile.type == WALKABLE_SPAWNING_TILES)
-                constantBeliefs.map.parcelSpawners.push([tile.x, tile.y]);
-        }
+        if(tile.type == DELIVERABLE_TILES)
+            constantBeliefs.map.deliverySpots.push([tile.x, tile.y]);
+        else if(tile.type == WALKABLE_SPAWNING_TILES)
+            constantBeliefs.map.parcelSpawners.push([tile.x, tile.y]);
     }
 
     console.log("Map graph -->", constantBeliefs.map.mapGraph);
