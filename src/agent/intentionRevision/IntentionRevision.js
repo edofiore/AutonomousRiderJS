@@ -61,13 +61,13 @@ class IntentionRevision {
         
         const new_intention = new Intention(this, predicate);
 
-        if (this.intention_queue[0]) {
-            // Enhanced decision making for intention management
-            await this.handleExistingIntentions(new_intention);
-        } else {
-            // Queue is empty, add the new intention
+        if(this.intention_queue.length == 0) {
             this.intention_queue[0] = new_intention;
             console.log("Added intention to empty queue:", new_intention.predicate);
+            return;
+        } else {
+            // Enhanced decision making for intention management
+            await this.handleExistingIntentions(new_intention);
         }
         
         console.log("CURRENT QUEUE:", this.intention_queue.map(intention => intention?.predicate || 'undefined'));
@@ -78,34 +78,54 @@ class IntentionRevision {
      * @param {Intention} new_intention - The new intention to add
      */
     async handleExistingIntentions(new_intention) {
-        const currentIntention = this.intention_queue[0];
         const new_predicate = new_intention.predicate;
 
-        // If current intention is GO_TO and new is more important, replace it
-        if (currentIntention.predicate[0] === GO_TO && new_predicate[0] !== GO_TO) {
-            console.log("Replacing GO_TO intention with more important one");
-            await this.putInTheQueue(0, new_intention);
-        }
-        // If current intention is GO_DELIVER or GO_PICK_UP
-        else if (currentIntention.predicate[0] === GO_DELIVER || currentIntention.predicate[0] === GO_PICK_UP) {
-            // Enhanced comparison for GO_PICK_UP and GO_DELIVER intentions
-            if (new_predicate[0] === GO_PICK_UP || new_predicate[0] === GO_DELIVER) {
-                const shouldSwap = await this.intentionComparison(currentIntention, new_intention);
+        for(let index = 0; index < this.intention_queue.length; index++) {
+            
+            const intention = this.intention_queue[index];
 
+            if (intention && intention.predicate[0] == GO_TO && new_predicate[0] != GO_TO) {
+                console.log("New intention is more important than existing GO_TO. Will attempt to replace.");
+                await this.putInTheQueue(index, new_intention);
+                return;
+            } else {
+                const shouldSwap = await this.intentionComparison(intention, new_intention);
                 if (shouldSwap) {
                     console.log("Swapping intentions based on enhanced comparison");
-                    await this.putInTheQueue(0, new_intention);
-                } else {
-                    // Check if we should insert at position 1
-                    if (this.intention_queue[1]) {
-                        const shouldSwapWithSecond = await this.intentionComparison(this.intention_queue[1], new_intention);
-                        if (shouldSwapWithSecond) {
-                            await this.putInTheQueue(1, new_intention);
-                        }
-                    }
+                    await this.putInTheQueue(index, new_intention);
+                    return;
                 }
             }
         }
+
+        this.intention_queue.push(new_intention);
+        console.log("Added intention to the end of the queue:", new_intention.predicate);
+
+//        // If current intention is GO_TO and new is more important, replace it
+//        if (currentIntention.predicate[0] === GO_TO && new_predicate[0] !== GO_TO) {
+//            console.log("Replacing GO_TO intention with more important one");
+//            await this.putInTheQueue(0, new_intention);
+//        }
+//        // If current intention is GO_DELIVER or GO_PICK_UP
+//        else if (currentIntention.predicate[0] === GO_DELIVER || currentIntention.predicate[0] === GO_PICK_UP) {
+//            // Enhanced comparison for GO_PICK_UP and GO_DELIVER intentions
+//            if (new_predicate[0] === GO_PICK_UP || new_predicate[0] === GO_DELIVER) {
+//                const shouldSwap = await this.intentionComparison(currentIntention, new_intention);
+//
+//                if (shouldSwap) {
+//                    console.log("Swapping intentions based on enhanced comparison");
+//                    await this.putInTheQueue(0, new_intention);
+//                } else {
+//                    // Check if we should insert at position 1
+//                    if (this.intention_queue[1]) {
+//                        const shouldSwapWithSecond = await this.intentionComparison(this.intention_queue[1], new_intention);
+//                        if (shouldSwapWithSecond) {
+//                            await this.putInTheQueue(1, new_intention);
+//                        }
+//                    }
+//                }
+//            }
+//        }
     }
 
     /**
@@ -254,13 +274,15 @@ class IntentionRevision {
             this.intention_queue[index] = new_intention;
             
             // Move the old intention to position 1
-            this.intention_queue[index + 1] = currentIntention;
+            this.intention_queue.splice(index + 1, 0, currentIntention);
+            // this.intention_queue[index + 1] = currentIntention;
             
             console.log(`Swapped intentions: new intention ${new_intention.predicate} at index 0, old intention ${currentIntention?.predicate || 'undefined'} moved to index 1`);
         } else {
             // For indexes other than 0, just replace - no need to stop queued intentions
-            this.intention_queue[index] = new_intention;
-            console.log(`Replaced intention at index ${index}`);
+            this.intention_queue.splice(index, 1, new_intention);
+            // this.intention_queue[index] = new_intention;
+            console.log(`Placed intention at index ${index}`);
         }
     }
 
