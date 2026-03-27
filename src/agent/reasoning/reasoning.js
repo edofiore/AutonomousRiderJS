@@ -54,7 +54,7 @@ async function optionsGeneration() {
                 new_option = [GO_DELIVER, parseInt(best_spot.x), parseInt(best_spot.y)];
             }
         }
-        if(new_option && !isIntentionAlreadyQueued(intention_queue, new_option) && !beliefs.invalidOptions.has(getIntentionKey(new_option))) {
+        if(new_option && !isIntentionAlreadyQueued(intention_queue, getIntentionKey(new_option)) && !beliefs.invalidOptions.has(getIntentionKey(new_option))) {
             options.add(new_option);
         }
     }
@@ -64,7 +64,7 @@ async function optionsGeneration() {
         const best_spot = findNearestDeliverySpot({x: beliefs.me.x, y: beliefs.me.y});
         const delivery_option = [GO_DELIVER, parseInt(best_spot.x), parseInt(best_spot.y)];
         
-        if(!isIntentionAlreadyQueued(intention_queue, delivery_option) && !beliefs.invalidOptions.has(getIntentionKey(delivery_option))) {
+        if(!isIntentionAlreadyQueued(intention_queue, getIntentionKey(delivery_option)) && !beliefs.invalidOptions.has(getIntentionKey(delivery_option))) {
                 options.add(delivery_option);
         }
     }
@@ -73,7 +73,7 @@ async function optionsGeneration() {
         const furthest_spot = findFurthestParcelSpawner(beliefs.me);
 
         const go_to_option = [GO_TO, parseInt(furthest_spot.x), parseInt(furthest_spot.y)];
-        if(!isIntentionAlreadyQueued(intention_queue, go_to_option) && !beliefs.invalidOptions.has(getIntentionKey(go_to_option))) {
+        if(!isIntentionAlreadyQueued(intention_queue, getIntentionKey(go_to_option)) && !beliefs.invalidOptions.has(getIntentionKey(go_to_option))) {
             options.add(go_to_option);
         }
     }
@@ -94,7 +94,7 @@ async function optionsGeneration() {
      * Best option is selected
      */
     if (best_option) {
-        if(!isIntentionAlreadyQueued(intention_queue, best_option)) {
+        if(!isIntentionAlreadyQueued(intention_queue, getIntentionKey(best_option))) {
             await newAgent.push(best_option);
         }
     }
