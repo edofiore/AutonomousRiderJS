@@ -111,6 +111,32 @@ class BlindMove extends Plan {
                     }
                 }
 
+                // Final guard against race conditions: recheck right before issuing the move.
+                if (!isTileFree(nextCoordinates)) {
+                    await new Promise(resolve => setTimeout(resolve, constantBeliefs.config.MOVEMENT_DURATION));
+
+                    if (!isTileFree(nextCoordinates)) {
+                        console.log(`Tile ${nextCoordinates} became blocked right before move. Replanning...`);
+                        addTemporaryBlockedTile(nextDest);
+
+                        if (replanAttempts >= maxReplanAttempts) {
+                            throw ['path blocked right before move - max attempts reached'];
+                        }
+
+                        replanAttempts++;
+
+                        try {
+                            const currentPos = {x: beliefs.me.x, y: beliefs.me.y};
+                            const newPath = await findBestPath(currentPos, {x, y});
+                            path = newPath;
+                            i = -1; // Reset loop counter (will be incremented to 0)
+                            continue;
+                        } catch (error) {
+                            throw ['replanning failed after final move check'];
+                        }
+                    }
+                }
+
                 // Execute movement
                 let movement_status = false;
                 if (nextCoordinates[0] > beliefs.me.x) {

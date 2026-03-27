@@ -1,15 +1,13 @@
 import { distance } from "../index.js";
 import { beliefs, constantBeliefs } from "./index.js";
 
-const start = Date.now();
-
 /**
  * Update the info about the other perceived agents
  * @param {Agent[]} agents 
  */
 const updateInfoOtherAgents = (agents) => {
 
-    const timestamp = Date.now() - start;
+    const timestamp = Date.now();
     for(const a of agents) {
         if ( a.x % 1 != 0 || a.y % 1 != 0 ) // skip intermediate values (0.6 or 0.4)
             continue;

@@ -169,12 +169,34 @@ const findAlternativePath = async (current_pos, destination, avoidTile) => {
  * @returns {boolean}
  */
 const isTileFree = (nextCoordinates) => {
-    const timestamp = Date.now();
-    // Check if any other agent is currently on this tile
+    const now = Date.now();
+    const freshnessWindow = constantBeliefs.config.MOVEMENT_DURATION * 2;
+
     const isOccupied = [...beliefs.otherAgents?.values()].some((agent_log) => {
-        return (agent_log.x === nextCoordinates[0] && agent_log.y === nextCoordinates[1] && (timestamp - agent_log.timestamp) < constantBeliefs.config.MOVEMENT_DURATION * 2);
+        if ((now - agent_log.timestamp) >= freshnessWindow) {
+            return false;
+        }
+
+        if (agent_log.x === nextCoordinates[0] && agent_log.y === nextCoordinates[1]) {
+            return true;
+        }
+
+        if (agent_log.direction === 'right' && agent_log.x + 1 === nextCoordinates[0] && agent_log.y === nextCoordinates[1]) {
+            return true;
+        }
+        if (agent_log.direction === 'left' && agent_log.x - 1 === nextCoordinates[0] && agent_log.y === nextCoordinates[1]) {
+            return true;
+        }
+        if (agent_log.direction === 'up' && agent_log.x === nextCoordinates[0] && agent_log.y + 1 === nextCoordinates[1]) {
+            return true;
+        }
+        if (agent_log.direction === 'down' && agent_log.x === nextCoordinates[0] && agent_log.y - 1 === nextCoordinates[1]) {
+            return true;
+        }
+
+        return false;
     });
-    
+
     return !isOccupied;
 };
 
