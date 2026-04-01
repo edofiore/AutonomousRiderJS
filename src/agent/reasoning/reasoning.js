@@ -11,7 +11,7 @@ async function optionsGeneration() {
     /**
      * Options generation
      */
-    const options = new Set();
+    const options = new Map();
 
     // For each
     for (const parcel_data of beliefs.storedParcels.values()) {
@@ -22,7 +22,7 @@ async function optionsGeneration() {
         if (!parcel.carriedBy && parcel.reward > 0) {    // TODO: Check if this is necessary, at the moment we store only free parcels
             const new_option = [GO_PICK_UP, parcel.x, parcel.y, parcel.id];
             if (!isIntentionAlreadyQueued(intention_queue, getIntentionKey(new_option)) && !beliefs.invalidOptions.has(getIntentionKey(new_option))) {
-                options.add(new_option);
+                options.set(getIntentionKey(new_option), new_option);
             }
         }
     }
@@ -55,7 +55,7 @@ async function optionsGeneration() {
             }
         }
         if(new_option && !isIntentionAlreadyQueued(intention_queue, getIntentionKey(new_option)) && !beliefs.invalidOptions.has(getIntentionKey(new_option))) {
-            options.add(new_option);
+            options.set(getIntentionKey(new_option), new_option);
         }
     }
 
@@ -65,7 +65,7 @@ async function optionsGeneration() {
         const delivery_option = [GO_DELIVER, parseInt(best_spot.x), parseInt(best_spot.y)];
         
         if(!isIntentionAlreadyQueued(intention_queue, getIntentionKey(delivery_option)) && !beliefs.invalidOptions.has(getIntentionKey(delivery_option))) {
-                options.add(delivery_option);
+                options.set(getIntentionKey(delivery_option), delivery_option);
         }
     }
 
@@ -74,7 +74,7 @@ async function optionsGeneration() {
 
         const go_to_option = [GO_TO, parseInt(furthest_spot.x), parseInt(furthest_spot.y)];
         if(!isIntentionAlreadyQueued(intention_queue, getIntentionKey(go_to_option)) && !beliefs.invalidOptions.has(getIntentionKey(go_to_option))) {
-            options.add(go_to_option);
+            options.set(getIntentionKey(go_to_option), go_to_option);
         }
     }
     
@@ -87,7 +87,7 @@ async function optionsGeneration() {
     // Find the best option
     let best_option = undefined;
     if(options.size > 0) {
-        best_option = findBestOption(options, beliefs.me);
+        best_option = findBestOption(options.values(), beliefs.me);
     }
 
     /**
