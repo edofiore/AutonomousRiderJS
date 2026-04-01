@@ -4,6 +4,15 @@ import { client } from "../../config/index.js";
 import { beliefs, constantBeliefs, GO_TO, ERROR_CODES } from "../index.js";
 import { findBestPath, isTileFree, addTemporaryBlockedTile, clearOldBlockedTiles } from "./utilsPlanning.js";
 
+const waitForIntegerPosition = async () => {
+    while (true) {
+        const meUpdate = await new Promise(res => client.onceYou(res));
+        if (meUpdate.x % 1 == 0 && meUpdate.y % 1 == 0) {
+            return;
+        }
+    }
+};
+
 class BlindMove extends Plan {
 
     static isApplicableTo(go_to, x, y) {
@@ -40,9 +49,7 @@ class BlindMove extends Plan {
                 const nextCoordinates = nextDest.split("-").map(Number);
 
                 // Check if the agent has reached integer coordinates
-                const check = new Promise(res => 
-                    client.onYou(m => m.x % 1 != 0 || m.y % 1 != 0 ? null : res())
-                );
+                const check = waitForIntegerPosition();
 
                 // Check if tile is free
                 if (!isTileFree(nextCoordinates)) {
