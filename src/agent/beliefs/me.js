@@ -7,7 +7,7 @@ import { beliefs } from "./index.js"
 const updateInfoAgent = ({id, name, x, y, score}) => {
 
     if ( x % 1 != 0 || y % 1 != 0 ) // skip intermediate values (0.6 or 0.4)
-        return;
+        return false;
 
     console.log("Updating info about me (%s)...", name)
 
@@ -16,6 +16,8 @@ const updateInfoAgent = ({id, name, x, y, score}) => {
     beliefs.me.x = x
     beliefs.me.y = y
     beliefs.me.score = score
+
+    return true;
 
 }
 

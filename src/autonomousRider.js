@@ -41,9 +41,11 @@ client.onMap((width, height, data) => {
 });
 
 client.onYou(({ id, name, x, y, score }) => {
-    updateInfoAgent({ id, name, x, y, score });
-    received.you = true;
-    checkAllReceived();
+    const updated = updateInfoAgent({ id, name, x, y, score });
+    if (updated) {
+        received.you = true;
+        checkAllReceived();
+    }
 });
 
 client.onParcelsSensing(async (parcels) => {
