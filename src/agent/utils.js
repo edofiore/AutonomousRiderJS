@@ -1,6 +1,6 @@
 import dijkstra from 'graphology-shortest-path';
 // Import only the variables that never will change during the execution
-import { constantBeliefs } from './index.js';
+import { beliefs, constantBeliefs } from './index.js';
 
 const GO_TO = "go_to";
 const GO_PICK_UP = "go_pick_up";
