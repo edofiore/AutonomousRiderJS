@@ -43,7 +43,7 @@ const updatePerceivedParcels = async ( perceivedParcels ) => {
             if(parcel_current_reward < 0) {
                 beliefs.storedParcels.delete(parcel_data.parcel.id);
             } else {
-                beliefs.storedParcels.set(parcel_data.parcel.id, { ...parcel_data, parcel: { ...parcel_data.parcel, reward: parcel_current_reward }, visible: false });
+                beliefs.storedParcels.set(parcel_data.parcel.id, { ...parcel_data, parcel: { ...parcel_data.parcel, reward: parcel_current_reward }, timestamp: now, visible: false });
             }
 
         } else {
@@ -64,7 +64,7 @@ const updateStoredParcels = async () => {
             if(parcel_current_reward < 0) {
                 beliefs.storedParcels.delete(parcel_data.parcel.id);
             } else {
-                beliefs.storedParcels.set(parcel_data.parcel.id, { ...parcel_data, parcel: { ...parcel_data.parcel, reward: parcel_current_reward } });
+                beliefs.storedParcels.set(parcel_data.parcel.id, { ...parcel_data, parcel: { ...parcel_data.parcel, reward: parcel_current_reward }, timestamp: now });
             }
         }
     }
