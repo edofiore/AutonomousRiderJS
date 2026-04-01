@@ -13,6 +13,35 @@ const WALKABLE_TILES = 3;   // '3' are walkable non-spawning tiles
 const DEFAULT_STOP_CODE = -1; // Default code for stopped intentions
 const QUEUE_SWAP_STOP_CODE = -2; // Special code for intentions stopped due to queue swapping (to avoid counting them as failures in intention revision)
 
+// Canonical error codes used across plans/intention-revision.
+const ERROR_CODES = Object.freeze({
+    STOPPED: 'stopped',
+    INTENTION_STOPPED: 'stopped intention',
+    INTENTION_INVALID: 'intention invalidated',
+    NO_PLAN: 'no plan satisfied intention',
+    BAD_COORDINATES: 'bad coordinates',
+    PARCEL_UNAVAILABLE: 'parcel unavailable',
+    NOTHING_TO_DELIVER: 'nothing to deliver',
+    PATH_UNAVAILABLE: 'path unavailable',
+    PATH_BLOCKED: 'path blocked',
+    REPLANNING_FAILED: 'replanning failed',
+    MOVEMENT_FAILED: 'movement failed'
+});
+
+const RETRYABLE_ERROR_CODES = [
+    ERROR_CODES.PATH_UNAVAILABLE,
+    ERROR_CODES.PATH_BLOCKED,
+    ERROR_CODES.REPLANNING_FAILED,
+    ERROR_CODES.MOVEMENT_FAILED
+];
+
+const getErrorCode = (error) => Array.isArray(error) ? error[0] : undefined;
+const getErrorStopCode = (error) => Array.isArray(error) ? error[1] : undefined;
+const isInterruptionError = (error) => {
+    const code = getErrorCode(error);
+    return code === ERROR_CODES.STOPPED || code === ERROR_CODES.INTENTION_STOPPED;
+}
+
 /**
  * Function to compute the distance (number of cells/steps) between 2 cells
  * @param {{x:number, y:number}} current_pos - Current Position
@@ -34,7 +63,7 @@ const distance = ( current_pos, target_pos ) => {
         
         return path.length - 1;
     } else {
-        throw ['Some coordinates were undefined', current_pos, target_pos];
+        throw [ERROR_CODES.BAD_COORDINATES, current_pos, target_pos];
     }
 }
 
@@ -112,5 +141,8 @@ const isIntentionAlreadyQueued = (intention_queue, intentionKey) =>{
 }
 
 export { 
-    GO_TO, GO_PICK_UP, GO_DELIVER, BLOCKED_TILES, WALKABLE_SPAWNING_TILES, DELIVERABLE_TILES, WALKABLE_TILES, DEFAULT_STOP_CODE, QUEUE_SWAP_STOP_CODE,
+    GO_TO, GO_PICK_UP, GO_DELIVER, BLOCKED_TILES, WALKABLE_SPAWNING_TILES, DELIVERABLE_TILES, WALKABLE_TILES,
+    DEFAULT_STOP_CODE, QUEUE_SWAP_STOP_CODE,
+    ERROR_CODES,
+    RETRYABLE_ERROR_CODES, getErrorCode, getErrorStopCode, isInterruptionError,
     distance, findNearestDeliverySpot, findFurthestParcelSpawner, getRewardAtDestination, compareUrgency, isIntentionAlreadyQueued, getIntentionKey};

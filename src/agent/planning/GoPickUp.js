@@ -1,4 +1,4 @@
-import { Plan, GO_PICK_UP, distance, beliefs, updateStoredParcels } from "../index.js";
+import { Plan, GO_PICK_UP, distance, beliefs, updateStoredParcels, ERROR_CODES } from "../index.js";
 import { findBestPath } from "./utilsPlanning.js";
 import { client } from "../../config/index.js";
 
@@ -12,10 +12,10 @@ class GoPickUp extends Plan {
         
         let mainParcel = beliefs?.storedParcels.get(id)?.parcel;
         if (!mainParcel || mainParcel.carriedBy) {
-            throw ['Main parcel is no longer available', id];
+            throw [ERROR_CODES.PARCEL_UNAVAILABLE, id, 'main parcel not available'];
         }
 
-        if (this.stopped) throw ['stopped'];
+        if (this.stopped) throw [ERROR_CODES.STOPPED];
 
         updateStoredParcels(); // Ensure we have the latest info on parcels
 
@@ -30,7 +30,7 @@ class GoPickUp extends Plan {
 
         // Execute sub-intentions for parcels along the path
         for (const pathParcel of parcelsAlongPath) {
-            if (this.stopped) throw ['stopped'];
+            if (this.stopped) throw [ERROR_CODES.STOPPED];
             
             // Check if parcel is still available
             const currentParcel = beliefs.storedParcels.get(pathParcel.id)?.parcel;
@@ -41,7 +41,7 @@ class GoPickUp extends Plan {
                     // Go to the parcel location
                     await this.subIntention(['go_to', pathParcel.x, pathParcel.y]);
                     
-                    if (this.stopped) throw ['stopped'];
+                    if (this.stopped) throw [ERROR_CODES.STOPPED];
                     
                     // Verify parcel is still there and pick it up
                     const finalCheck = beliefs.storedParcels.get(pathParcel.id)?.parcel;
@@ -60,29 +60,29 @@ class GoPickUp extends Plan {
             updateStoredParcels(); // Ensure we have the latest info on parcels
         }
 
-        if (this.stopped) throw ['stopped'];
+        if (this.stopped) throw [ERROR_CODES.STOPPED];
 
         // Finally, go to the main target parcel
         mainParcel = beliefs.storedParcels.get(id)?.parcel;
         if (!mainParcel || mainParcel.carriedBy) {
-            throw ['Main parcel is no longer available', id];
+            throw [ERROR_CODES.PARCEL_UNAVAILABLE, id, 'main parcel became unavailable'];
         }
 
         console.log(`Going to main target parcel ${id} at (${x}, ${y})`);
         await this.subIntention(['go_to', x, y]);
         
-        if (this.stopped) throw ['stopped'];
+        if (this.stopped) throw [ERROR_CODES.STOPPED];
 
         // Pick up the main target parcel
         const finalMainParcel = beliefs.storedParcels.get(id)?.parcel;
         if (!finalMainParcel || finalMainParcel.carriedBy) {
-            throw ['Main parcel is no longer available', id];
+            throw [ERROR_CODES.PARCEL_UNAVAILABLE, id, 'main parcel unavailable before pickup'];
         }
 
         await client.emitPickup();
         console.log(`Successfully picked up main target parcel ${id}`);
         
-        if (this.stopped) throw ['stopped'];
+        if (this.stopped) throw [ERROR_CODES.STOPPED];
         return true;
     }
 

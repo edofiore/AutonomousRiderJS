@@ -1,7 +1,7 @@
 import { Plan } from "./index.js";
 import { client } from "../../config/index.js";
 import { GO_DELIVER } from "../utils.js";
-import { beliefs } from "../index.js";
+import { beliefs, ERROR_CODES } from "../index.js";
 
 class GoDeliver extends Plan {
     static isApplicableTo (go_deliver, x, y, id) {
@@ -9,18 +9,18 @@ class GoDeliver extends Plan {
     }
     
     async execute (go_deliver, x, y) {
-        if (this.stopped) throw ['stopped']; // if stopped then quit
+        if (this.stopped) throw [ERROR_CODES.STOPPED]; // if stopped then quit
         if (!(beliefs.me?.carried_parcels_count > 0)) {
-            throw ['Nothing to deliver'];
+            throw [ERROR_CODES.NOTHING_TO_DELIVER];
         }
-        if (this.stopped) throw ['stopped']; // if stopped then quit
+        if (this.stopped) throw [ERROR_CODES.STOPPED]; // if stopped then quit
         await this.subIntention( ['go_to', parseInt(x), parseInt(y)] );
-        if (this.stopped) throw ['stopped']; // if stopped then quit
+        if (this.stopped) throw [ERROR_CODES.STOPPED]; // if stopped then quit
         console.log("DELIVERYING AT: ", x, y, "(INTENTION)");
         if(beliefs.me.x == x && beliefs.me.y == y){
             await client.emitPutdown();
         }
-        if (this.stopped) throw ['stopped']; // if stopped then quit
+        if (this.stopped) throw [ERROR_CODES.STOPPED]; // if stopped then quit
         return true;    
     } 
 

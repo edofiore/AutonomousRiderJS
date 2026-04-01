@@ -1,4 +1,4 @@
-import { beliefs, constantBeliefs, Intention, GO_TO, GO_DELIVER, GO_PICK_UP, calculateScore, optionsGeneration, getIntentionKey, QUEUE_SWAP_STOP_CODE } from "../index.js";
+import { beliefs, constantBeliefs, Intention, GO_TO, GO_DELIVER, GO_PICK_UP, calculateScore, optionsGeneration, getIntentionKey, QUEUE_SWAP_STOP_CODE, RETRYABLE_ERROR_CODES, getErrorCode, getErrorStopCode, isInterruptionError } from "../index.js";
 
 /**
  * Unified IntentionRevision class for BDI architecture
@@ -146,21 +146,16 @@ class IntentionRevision {
      * @returns {boolean} True if should retry
      */
     shouldRetryIntention(intentionKey, error) {
-        if (!Array.isArray(error)) return false;
-        
-        const errorType = error[0];
+        const errorCode = getErrorCode(error);
+        if (!errorCode) return false;
+
         const failures = this.#failureCount.get(intentionKey) || 0;
         
         // Don't retry if too many failures
         if (failures >= 5) return false;
         
         // Retry for certain error types
-        const retryableErrors = [
-            'tile blocked',
-            'movement failed'
-        ];
-        
-        return retryableErrors.includes(errorType);
+        return RETRYABLE_ERROR_CODES.includes(errorCode);
     }
 
     /**
@@ -192,9 +187,10 @@ class IntentionRevision {
                     console.log('Failed intention:', intention.predicate, 'Error:', error);
                     
                     const intentionKey = getIntentionKey(intention.predicate);
+                    const stopCode = getErrorStopCode(error);
 
                     // Record the failure
-                    if(error[1] != QUEUE_SWAP_STOP_CODE) { // Don't record as failure if we intentionally stopped for a queue swap
+                    if (stopCode != QUEUE_SWAP_STOP_CODE && !isInterruptionError(error)) { // Don't record intentional interruptions as failures
                         this.recordIntentionFailure(intentionKey, error);
                     }
                     

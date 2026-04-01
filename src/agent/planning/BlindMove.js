@@ -1,7 +1,7 @@
 import { Plan } from "./index.js";
 import dijkstra from 'graphology-shortest-path';
 import { client } from "../../config/index.js";
-import { beliefs, constantBeliefs, GO_TO } from "../index.js";
+import { beliefs, constantBeliefs, GO_TO, ERROR_CODES } from "../index.js";
 import { findBestPath, isTileFree, addTemporaryBlockedTile, clearOldBlockedTiles } from "./utilsPlanning.js";
 
 class BlindMove extends Plan {
@@ -14,7 +14,7 @@ class BlindMove extends Plan {
         console.log("Executing go_to...");
 
         if (beliefs.me.x != x || beliefs.me.y != y) {
-            if (this.stopped) throw ['stopped'];    // if stopped then quit
+            if (this.stopped) throw [ERROR_CODES.STOPPED];    // if stopped then quit
 
             let path = null;
             let replanAttempts = 0;
@@ -29,12 +29,12 @@ class BlindMove extends Plan {
                 console.log("Initial path planned:", path);
             } catch (error) {
                 console.log("No path found to destination");
-                throw ['no path available'];
+                throw [ERROR_CODES.PATH_UNAVAILABLE, 'no path available'];
             }
 
             // Execute path with replanning on blocked tiles
             for (let i = 0; i < path.length; i++) {
-                if (this.stopped) throw ['stopped'];
+                if (this.stopped) throw [ERROR_CODES.STOPPED];
 
                 const nextDest = path[i];
                 const nextCoordinates = nextDest.split("-").map(Number);
@@ -63,7 +63,7 @@ class BlindMove extends Plan {
 
                         if (replanAttempts >= maxReplanAttempts) {
                             console.log("Max replan attempts reached. Path may be impossible.");
-                            throw ['path blocked - max attempts reached'];
+                            throw [ERROR_CODES.PATH_BLOCKED, 'max attempts reached'];
                         }
 
                         replanAttempts++;
@@ -102,10 +102,10 @@ class BlindMove extends Plan {
                                     continue;
                                 } catch (finalError) {
                                     console.log("Final replan attempt failed");
-                                    throw ['no alternative path found', currentPos, {x, y}];
+                                    throw [ERROR_CODES.REPLANNING_FAILED, 'no alternative path found', currentPos, {x, y}];
                                 }
                             } else {
-                                throw ['replanning failed - no alternative path', beliefs.me, {x, y}];
+                                throw [ERROR_CODES.REPLANNING_FAILED, 'no alternative path', beliefs.me, {x, y}];
                             }
                         }
                     }
@@ -120,7 +120,7 @@ class BlindMove extends Plan {
                         addTemporaryBlockedTile(nextDest);
 
                         if (replanAttempts >= maxReplanAttempts) {
-                            throw ['path blocked right before move - max attempts reached'];
+                            throw [ERROR_CODES.PATH_BLOCKED, 'right-before-move max attempts'];
                         }
 
                         replanAttempts++;
@@ -132,7 +132,7 @@ class BlindMove extends Plan {
                             i = -1; // Reset loop counter (will be incremented to 0)
                             continue;
                         } catch (error) {
-                            throw ['replanning failed after final move check'];
+                            throw [ERROR_CODES.REPLANNING_FAILED, 'after final move check'];
                         }
                     }
                 }
@@ -164,25 +164,25 @@ class BlindMove extends Plan {
                             replanAttempts++;
                             continue;
                         } catch (error) {
-                            throw ['movement failed and replanning unsuccessful'];
+                            throw [ERROR_CODES.MOVEMENT_FAILED, 'replanning unsuccessful'];
                         }
                     } else {
-                        throw ['movement failed'];
+                        throw [ERROR_CODES.MOVEMENT_FAILED];
                     }
                 }
 
-                if (this.stopped) throw ['stopped'];
+                if (this.stopped) throw [ERROR_CODES.STOPPED];
 
                 await check;
 
-                if (this.stopped) throw ['stopped'];
+                if (this.stopped) throw [ERROR_CODES.STOPPED];
 
                 // Reset replan attempts on successful movement
                 replanAttempts = 0;
             }
         }
 
-        if (this.stopped) throw ['stopped'];
+        if (this.stopped) throw [ERROR_CODES.STOPPED];
 
         return true;
     }
