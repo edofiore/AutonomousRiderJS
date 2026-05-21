@@ -13,17 +13,36 @@ import { beliefs, constantBeliefs } from "../index.js";
 const addTemporaryBlockedTile = (tileId) => {
     clearOldBlockedTiles();
     const currentTime = Date.now();
+
+    // Defensive: ensure the structure exists and is an array.
+    if (!Array.isArray(beliefs.tmpBlockedTiles)) {
+        beliefs.tmpBlockedTiles = [];
+    }
     
     // Check if tile is already in blocked list
-    const existingIndex = beliefs.tmpBlockedTiles.findIndex(item => 
-        (typeof item === 'string' ? item : item.tile) === tileId
+    const existingIndex = beliefs.tmpBlockedTiles.findIndex(item =>
+        (typeof item === 'string' ? item : item?.tile) === tileId
     );
     
     // Update existing entry
     if (existingIndex !== -1) {
-        // beliefs.tmpBlockedTiles[existingIndex].timestamp = currentTime;
-        beliefs.tmpBlockedTiles[existingIndex].attempts++;
-        
+        const existing = beliefs.tmpBlockedTiles[existingIndex];
+
+        // Legacy format support: older code used plain strings.
+        if (typeof existing === 'string') {
+            beliefs.tmpBlockedTiles[existingIndex] = {
+                tile: tileId,
+                timestamp: currentTime,
+                attempts: 2
+            };
+        } else {
+            const previousAttempts = typeof existing?.attempts === 'number' ? existing.attempts : 0;
+            beliefs.tmpBlockedTiles[existingIndex] = {
+                tile: tileId,
+                timestamp: currentTime,
+                attempts: previousAttempts + 1
+            };
+        }
     } else {
         // Add new entry
         beliefs.tmpBlockedTiles.push({
@@ -41,17 +60,34 @@ const addTemporaryBlockedTile = (tileId) => {
  */
 const clearOldBlockedTiles = () => {
     const currentTime = Date.now();
-    const maxAge = constantBeliefs.config.MOVEMENT_DURATION * 3; // movement cycles
+
+    // If config isn't ready yet, don't age-out entries, but still normalize/drop invalid ones.
+    const movementDuration = constantBeliefs.config.MOVEMENT_DURATION;
+    const maxAge = (typeof movementDuration === 'number' && Number.isFinite(movementDuration) && movementDuration > 0)
+        ? movementDuration * 3
+        : Number.POSITIVE_INFINITY;
     // const maxAttempts = 5;
+
+    if (!Array.isArray(beliefs.tmpBlockedTiles)) {
+        beliefs.tmpBlockedTiles = [];
+    }
     
     const originalLength = beliefs.tmpBlockedTiles.length;
     
     beliefs.tmpBlockedTiles = beliefs.tmpBlockedTiles.filter(item => {
-        // if (typeof item === 'string') {
-        //     // Old format, remove after some time
-        //     return false;
-        // }
-        
+        // Old format (string): drop it; it will be re-added in normalized form when needed.
+        if (typeof item === 'string') {
+            return false;
+        }
+
+        if (!item || typeof item.tile !== 'string') {
+            return false;
+        }
+
+        if (typeof item.timestamp !== 'number' || !Number.isFinite(item.timestamp)) {
+            return false;
+        }
+
         const age = currentTime - item.timestamp;
         const tooOld = age > maxAge;
         // const tooManyAttempts = item.attempts > maxAttempts;
