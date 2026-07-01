@@ -5,7 +5,11 @@
   "type": "module",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node src/autonomousRider.js",
+    "agent1": "TEAM=1 node src/autonomousRider.js -name=A1",
+    "agent2": "TEAM=1 node src/autonomousRider.js -name=A2",
+    "team": "TEAM=1 node src/autonomousRider.js"
   },
   "repository": {
     "type": "git",

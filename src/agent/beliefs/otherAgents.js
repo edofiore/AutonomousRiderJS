@@ -39,7 +39,7 @@ const updateInfoOtherAgents = (agents) => {
             return `${name}(${direction},${ distance_from_me < constantBeliefs.config.AOD})@${timestamp}:${x},${y}`;
         }).join(' ');
         
-        console.log("Other agents", prettyPrint);
+        console.log("Other agents: ", prettyPrint);
     }
 }
 

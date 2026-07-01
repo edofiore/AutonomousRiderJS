@@ -17,6 +17,18 @@ const beliefs = {
     otherAgents: new Map(), // Map of < agentId, { name, x, y, score, penalty, timestamp, direction } >
     tmpBlockedTiles: [],
     invalidOptions: new Map(), // Map of <intentionKey, timestamp> to keep track of invalid options and avoid generating them
+
+    // --- Multi-agent (Part 2) coordination state ---
+    teammate: {
+        id: null,       // Deliveroo agent id of the teammate (null until discovered)
+        name: null,
+        x: null,
+        y: null,
+        lastSeen: 0,    // timestamp of the last message received from the teammate
+    },
+    // Parcels the teammate has committed to (so we don't chase the same one).
+    // Map of < intentionKey, { parcelId, x, y, score, timestamp } >
+    teamClaims: new Map(),
 }
 
 

@@ -10,5 +10,11 @@ node_modules/
 # Config file
 src/config/config.js
 
+# Pdf/txt/log file
+*.pdf
+*.txt
+*.log
+
+
 # dotenv local environment variables file
 .env.local

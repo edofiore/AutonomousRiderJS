@@ -38,9 +38,10 @@ const updatePerceivedParcels = async ( perceivedParcels ) => {
     for ( const parcel_data of beliefs.storedParcels.values() ) {
 
         if ( perceivedParcels.map( p => p.id ).find( id => id == parcel_data.parcel.id ) == undefined ) {
-            let parcel_current_reward = parcel_data.parcel.reward - parseInt(( (now - parcel_data.timestamp) / 1000 ) / constantBeliefs.config.PDI);
+            const decay = ((now - parcel_data.timestamp) / 1000) / constantBeliefs.config.PDI;
+            const parcel_current_reward = parcel_data.parcel.reward - decay;
 
-            if(parcel_current_reward < 0) {
+            if(parcel_current_reward <= 0) {
                 beliefs.storedParcels.delete(parcel_data.parcel.id);
             } else {
                 beliefs.storedParcels.set(parcel_data.parcel.id, { ...parcel_data, parcel: { ...parcel_data.parcel, reward: parcel_current_reward }, timestamp: now, visible: false });
@@ -58,10 +59,11 @@ const updateStoredParcels = async () => {
         if (parcel_data.parcel.carriedBy ) {
             beliefs.storedParcels.delete(parcel_data.parcel.id);
         } else {
-            let now = Date.now();
-            let parcel_current_reward = parcel_data.parcel.reward - parseInt(( (now - parcel_data.timestamp) / 1000 ) / constantBeliefs.config.PDI);
+            const now = Date.now();
+            const decay = ((now - parcel_data.timestamp) / 1000) / constantBeliefs.config.PDI;
+            const parcel_current_reward = parcel_data.parcel.reward - decay;
 
-            if(parcel_current_reward < 0) {
+            if(parcel_current_reward <= 0) {
                 beliefs.storedParcels.delete(parcel_data.parcel.id);
             } else {
                 beliefs.storedParcels.set(parcel_data.parcel.id, { ...parcel_data, parcel: { ...parcel_data.parcel, reward: parcel_current_reward }, timestamp: now });

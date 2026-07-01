@@ -1,4 +1,5 @@
 import { beliefs, constantBeliefs, Intention, GO_TO, GO_DELIVER, GO_PICK_UP, calculateScore, optionsGeneration, getIntentionKey, QUEUE_SWAP_STOP_CODE, RETRYABLE_ERROR_CODES, getErrorCode, getErrorStopCode, isInterruptionError } from "../index.js";
+import { announceClaim, releaseClaim } from "../coordination/index.js";
 
 /**
  * Unified IntentionRevision class for BDI architecture
@@ -47,7 +48,14 @@ class IntentionRevision {
     }
 
     /**
-     * Enhanced push method with validation and failure handling
+     * Enhanced push method with validation and failure handling.
+     *
+     * The body is synchronous end-to-end (no `await` between the
+     * `isAlreadyQueued` check and the queue mutation) so two concurrent
+     * `push()` calls — as happens when `onParcelsSensing`,
+     * `onAgentsSensing`, and the IR.loop all fire `optionsGeneration` — can't
+     * interleave and each end up inserting the same intention into the queue.
+     *
      * @param {Array} predicate - [action: string, x: number, y: number, parcel_id: string]
      */
     async push(predicate) {
@@ -58,49 +66,48 @@ class IntentionRevision {
             console.log("Intention is already queued!");
             return;
         }
-        
+
         const new_intention = new Intention(this, predicate);
 
         if (this.intention_queue[0]) {
-            // Enhanced decision making for intention management
-            await this.handleExistingIntentions(new_intention);
+            this.handleExistingIntentions(new_intention);
         } else {
-            // Queue is empty, add the new intention
             this.intention_queue[0] = new_intention;
             console.log("Added intention to empty queue:", new_intention.predicate);
         }
-        
+
         console.log("CURRENT QUEUE:", this.intention_queue.map(intention => intention?.predicate || 'undefined'));
     }
 
     /**
-     * Handle the case where there are existing intentions in the queue
+     * Handle the case where there are existing intentions in the queue.
+     * Synchronous — see `push` for why.
      * @param {Intention} new_intention - The new intention to add
      */
-    async handleExistingIntentions(new_intention) {
+    handleExistingIntentions(new_intention) {
         const currentIntention = this.intention_queue[0];
         const new_predicate = new_intention.predicate;
 
         // If current intention is GO_TO and new is more important, replace it
         if (currentIntention.predicate[0] === GO_TO && new_predicate[0] !== GO_TO) {
             console.log("Replacing GO_TO intention with more important one");
-            await this.putInTheQueue(0, new_intention);
+            this.putInTheQueue(0, new_intention);
         }
         // If current intention is GO_DELIVER or GO_PICK_UP
         else if (currentIntention.predicate[0] === GO_DELIVER || currentIntention.predicate[0] === GO_PICK_UP) {
             // Enhanced comparison for GO_PICK_UP and GO_DELIVER intentions
             if (new_predicate[0] === GO_PICK_UP || new_predicate[0] === GO_DELIVER) {
-                const shouldSwap = await this.intentionComparison(currentIntention, new_intention);
+                const shouldSwap = this.intentionComparison(currentIntention, new_intention);
 
                 if (shouldSwap) {
                     console.log("Swapping intentions based on enhanced comparison");
-                    await this.putInTheQueue(0, new_intention);
+                    this.putInTheQueue(0, new_intention);
                 } else {
                     // Check if we should insert at position 1
                     if (this.intention_queue[1]) {
-                        const shouldSwapWithSecond = await this.intentionComparison(this.intention_queue[1], new_intention);
+                        const shouldSwapWithSecond = this.intentionComparison(this.intention_queue[1], new_intention);
                         if (shouldSwapWithSecond) {
-                            await this.putInTheQueue(1, new_intention);
+                            this.putInTheQueue(1, new_intention);
                         }
                     }
                 }
@@ -109,12 +116,15 @@ class IntentionRevision {
     }
 
     /**
-     * Enhanced intention comparison that considers multiple factors
+     * Enhanced intention comparison that considers multiple factors.
+     * Synchronous (all the work is pure calc); previously `async` for no
+     * reason, which made callers `await` and yield the event loop between
+     * their check and their mutation — the concurrent-push race.
      * @param {Intention} intention1 - First intention to compare
      * @param {Intention} intention2 - Second intention to compare
      * @returns {boolean} True if intention2 should replace intention1
      */
-    async intentionComparison(intention1, intention2) {
+    intentionComparison(intention1, intention2) {
         if (getIntentionKey(intention1.predicate) === getIntentionKey(intention2.predicate)) {
             console.log(`Intention comparison: Same intention, no swap needed`);
             return false; // Same intention, no swap needed
@@ -123,13 +133,13 @@ class IntentionRevision {
         const agent_pos = { x: beliefs.me.x, y: beliefs.me.y };
 
         const score1 = calculateScore(
-            intention1.predicate, 
-            agent_pos, 
+            intention1.predicate,
+            agent_pos,
             this.#failureCount.get(getIntentionKey(intention1.predicate)) || 0
         );
         const score2 = calculateScore(
-            intention2.predicate, 
-            agent_pos, 
+            intention2.predicate,
+            agent_pos,
             this.#failureCount.get(getIntentionKey(intention2.predicate)) || 0
         );
 
@@ -175,8 +185,21 @@ class IntentionRevision {
                 // Enhanced validity check
                 if (!intention.isStillValid()) {
                     console.log("Skipping invalid intention:", intention.predicate);
-                    this.intention_queue.shift();
+                    releaseClaim(intention.predicate); // Part 2: free the parcel for the teammate
+                    const idx = this.intention_queue.indexOf(intention);
+                    if (idx !== -1) this.intention_queue.splice(idx, 1);
                     continue;
+                }
+
+                // Part 2: announce the claim now that we are actually committing
+                // to this target so the teammate picks a different one. Covers
+                // pickups, delivery spots, and wander spots alike. For go_to
+                // (wander) we use a flat score of 1, matching findBestOption.
+                {
+                    const score = intention.predicate[0] === GO_TO
+                        ? 1
+                        : calculateScore(intention.predicate, { x: beliefs.me.x, y: beliefs.me.y });
+                    announceClaim(intention.predicate, score);
                 }
 
                 // Execute intention with enhanced error handling
@@ -205,8 +228,17 @@ class IntentionRevision {
                     }
                 }
 
-                // Remove completed/failed intention from queue
-                this.intention_queue.shift();
+                // Remove completed/failed intention from queue.
+                // We remove by object identity (not `shift`) because the queue
+                // may have been mutated during the await — e.g. a `putInTheQueue`
+                // swap moved `intention` to another index, or dropped it entirely.
+                // `shift()` would remove whatever is now at position 0, which is
+                // often the newly-inserted intention, not the one we just
+                // finished. That was the "Failed intention → Successfully
+                // completed" phantom-success pattern in the logs.
+                releaseClaim(intention.predicate); // Part 2: free the parcel for the teammate
+                const idx = this.intention_queue.indexOf(intention);
+                if (idx !== -1) this.intention_queue.splice(idx, 1);
             } else {
                 // Queue is empty, generate new options
                 try {
@@ -222,11 +254,20 @@ class IntentionRevision {
     }
 
     /**
-     * Insert or replace intention at specific index in the queue
+     * Insert or replace intention at specific index in the queue.
+     *
+     * Synchronous: we fire the old intention's `stop()` without awaiting it.
+     * `.stop()` sets the `#stopped` flag synchronously — that's the only thing
+     * the queue swap actually depends on. The cascading async stop of the
+     * plan's sub-intentions can finish in the background; the plan will see
+     * its `#stopped` flag on its next check and throw. Awaiting `stop()` here
+     * was the yield point that let a concurrent `push` slip a same-key
+     * intention into the slot and produce a duplicated queue.
+     *
      * @param {number} index - The queue position
      * @param {Intention} new_intention - The intention to insert
      */
-    async putInTheQueue(index, new_intention) {
+    putInTheQueue(index, new_intention) {
         // Check if the index is valid
         if (index < 0) {
             console.log(`Invalid index ${index}.`);
@@ -235,23 +276,23 @@ class IntentionRevision {
 
         if (index == 0) {
             const currentIntention = this.intention_queue[index];
-            
-            // Stop the current intention at position 0
-            try {
-                if (this.intention_queue[index]) {
-                    await this.intention_queue[index].stop(QUEUE_SWAP_STOP_CODE);
-                    console.log(`Stopped intention ${currentIntention?.predicate || 'undefined'} at index 0`);
+
+            // Fire-and-forget stop of the current intention (flag is set synchronously).
+            if (currentIntention) {
+                try {
+                    currentIntention.stop(QUEUE_SWAP_STOP_CODE);
+                    console.log(`Stopped intention ${currentIntention.predicate} at index 0`);
+                } catch (error) {
+                    console.log("Error stopping intention at index 0:", error);
                 }
-            } catch (error) {
-                console.log("Error stopping intention at index 0:", error);
             }
-            
-            // Insert the new intention at position 0
+
+            // Insert the new (highest-priority) intention at position 0 and
+            // demote the previous head to position 1. Whatever was at queue[1]
+            // (the lower-priority backup) is intentionally displaced.
             this.intention_queue[index] = new_intention;
-            
-            // Move the old intention to position 1
             this.intention_queue[index + 1] = currentIntention;
-            
+
             console.log(`Swapped intentions: new intention ${new_intention.predicate} at index 0, old intention ${currentIntention?.predicate || 'undefined'} moved to index 1`);
         } else {
             // For indexes other than 0, just replace - no need to stop queued intentions

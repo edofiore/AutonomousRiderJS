@@ -46,8 +46,15 @@ class GoPickUp extends Plan {
                     // Verify parcel is still there and pick it up
                     const finalCheck = beliefs.storedParcels.get(pathParcel.id)?.parcel;
                     if (finalCheck && !finalCheck.carriedBy) {
-                        await client.emitPickup();
-                        console.log(`Successfully picked up parcel ${pathParcel.id}`);
+                        const picked = await client.emitPickup();
+                        if (picked && picked.length > 0) {
+                            console.log(`Successfully picked up parcel ${pathParcel.id}`);
+                        } else {
+                            // Phantom: belief said the parcel was here but the server
+                            // picked up nothing. Drop it so we stop re-targeting it.
+                            console.log(`No parcel at (${pathParcel.x},${pathParcel.y}) — dropping phantom ${pathParcel.id}`);
+                            beliefs.storedParcels.delete(pathParcel.id);
+                        }
                     } else {
                         console.log(`Parcel ${pathParcel.id} was taken by someone else`);
                     }
@@ -79,9 +86,16 @@ class GoPickUp extends Plan {
             throw [ERROR_CODES.PARCEL_UNAVAILABLE, id, 'main parcel unavailable before pickup'];
         }
 
-        await client.emitPickup();
+        const pickedMain = await client.emitPickup();
+        if (!pickedMain || pickedMain.length === 0) {
+            // Phantom main target: drop it from beliefs so the next options
+            // round can pick something real (or the delivery option).
+            console.log(`No parcel at (${x},${y}) — dropping phantom main target ${id}`);
+            beliefs.storedParcels.delete(id);
+            throw [ERROR_CODES.PARCEL_UNAVAILABLE, id, 'main parcel not present at expected location'];
+        }
         console.log(`Successfully picked up main target parcel ${id}`);
-        
+
         if (this.stopped) throw [ERROR_CODES.STOPPED];
         return true;
     }

@@ -1,6 +1,10 @@
-import {beliefs, findNearestDeliverySpot, findFurthestParcelSpawner, GO_TO, GO_DELIVER, GO_PICK_UP, isIntentionAlreadyQueued, distance, getRewardAtDestination, getIntentionKey } from "../index.js"
+import {beliefs, constantBeliefs, findNearestDeliverySpot, findFurthestParcelSpawner, GO_TO, GO_DELIVER, GO_PICK_UP, isIntentionAlreadyQueued, distance, getRewardAtDestination, getIntentionKey } from "../index.js"
+import { isClaimedByTeammate } from "../coordination/index.js";
 import { newAgent } from "../../autonomousRider.js";
 
+// Keys we are currently yielding to the teammate. Used to log a yield only on
+// transition (first tick we start yielding a parcel), not on every options tick.
+let yieldedKeys = new Set();
 
 async function optionsGeneration() {
 
@@ -12,6 +16,7 @@ async function optionsGeneration() {
      * Options generation
      */
     const options = new Map();
+    const currentYielded = new Set();
 
     // For each
     for (const parcel_data of beliefs.storedParcels.values()) {
@@ -21,11 +26,23 @@ async function optionsGeneration() {
          */
         if (!parcel.carriedBy && parcel.reward > 0) {    // TODO: Check if this is necessary, at the moment we store only free parcels
             const new_option = [GO_PICK_UP, parcel.x, parcel.y, parcel.id];
-            if (!isIntentionAlreadyQueued(intention_queue, getIntentionKey(new_option)) && !beliefs.invalidOptions.has(getIntentionKey(new_option))) {
-                options.set(getIntentionKey(new_option), new_option);
+            const option_key = getIntentionKey(new_option);
+            if (!isIntentionAlreadyQueued(intention_queue, option_key) && !beliefs.invalidOptions.has(option_key)) {
+                // Part 2: yield a contested parcel to the teammate when they have a better score.
+                const my_score = calculateScore(new_option, { x: beliefs.me.x, y: beliefs.me.y });
+                if (isClaimedByTeammate(option_key, my_score)) {
+                    currentYielded.add(option_key);
+                    if (!yieldedKeys.has(option_key)) {
+                        console.log(`[TEAM] Yielding parcel ${parcel.id} to teammate (my score ${my_score})`);
+                    }
+                    continue;
+                }
+                options.set(option_key, new_option);
             }
         }
     }
+
+    yieldedKeys = currentYielded;
 
     /**
      * TODO: control the amount of options I'm generating. I'm generating useless options
@@ -59,22 +76,48 @@ async function optionsGeneration() {
         }
     }
 
-    // Deliver directly is always an option if I'm carrying parcels
+    // Deliver directly is always an option if I'm carrying parcels. Iterate
+    // delivery spots from nearest to farthest and pick the first one that
+    // isn't already queued, isn't marked invalid (e.g. recently failed), and
+    // isn't claimed by the teammate with a better score. This keeps a single
+    // blocked or contested zone from suppressing delivery entirely.
     if(beliefs.me.carried_parcels_count > 0) {
-        const best_spot = findNearestDeliverySpot({x: beliefs.me.x, y: beliefs.me.y});
-        const delivery_option = [GO_DELIVER, parseInt(best_spot.x), parseInt(best_spot.y)];
-        
-        if(!isIntentionAlreadyQueued(intention_queue, getIntentionKey(delivery_option)) && !beliefs.invalidOptions.has(getIntentionKey(delivery_option))) {
-                options.set(getIntentionKey(delivery_option), delivery_option);
+        const me_pos = {x: beliefs.me.x, y: beliefs.me.y};
+        const spots = [...constantBeliefs.map.deliverySpots]
+            .map(([x, y]) => ({x, y}))
+            .sort((a, b) => distance(me_pos, a) - distance(me_pos, b));
+
+        for (const spot of spots) {
+            const delivery_option = [GO_DELIVER, parseInt(spot.x), parseInt(spot.y)];
+            const key = getIntentionKey(delivery_option);
+            if (isIntentionAlreadyQueued(intention_queue, key)) continue;
+            if (beliefs.invalidOptions.has(key)) continue;
+            const my_score = calculateScore(delivery_option, me_pos);
+            if (isClaimedByTeammate(key, my_score)) continue;
+            options.set(key, delivery_option);
+            break;
         }
     }
 
     if (options.size == 0) {
-        const furthest_spot = findFurthestParcelSpawner(beliefs.me);
+        // Wander fallback: iterate spawners from FARTHEST to nearest and pick
+        // the first one the teammate isn't already heading to, so the two
+        // agents naturally explore different parts of the map.
+        const me_pos = {x: beliefs.me.x, y: beliefs.me.y};
+        const spots = [...constantBeliefs.map.parcelSpawners]
+            .map(([x, y]) => ({x, y}))
+            .sort((a, b) => distance(me_pos, b) - distance(me_pos, a));
 
-        const go_to_option = [GO_TO, parseInt(furthest_spot.x), parseInt(furthest_spot.y)];
-        if(!isIntentionAlreadyQueued(intention_queue, getIntentionKey(go_to_option)) && !beliefs.invalidOptions.has(getIntentionKey(go_to_option))) {
-            options.set(getIntentionKey(go_to_option), go_to_option);
+        for (const spot of spots) {
+            const go_to_option = [GO_TO, parseInt(spot.x), parseInt(spot.y)];
+            const key = getIntentionKey(go_to_option);
+            if (isIntentionAlreadyQueued(intention_queue, key)) continue;
+            if (beliefs.invalidOptions.has(key)) continue;
+            // Flat score 1 mirrors findBestOption's go_to scoring and
+            // IntentionRevision's announceClaim score for wander.
+            if (isClaimedByTeammate(key, 1)) continue;
+            options.set(key, go_to_option);
+            break;
         }
     }
     
@@ -144,11 +187,13 @@ const calculateRiskPenalty = (position) => {
 
     const distance_from_me = distance(position, { x: beliefs.me.x, y: beliefs.me.y });
 
-    for (const opponent_log of beliefs.otherAgents?.values()) {
+    for (const [id, opponent_log] of beliefs.otherAgents?.entries() ?? []) {
+        // The teammate coordinates with us via claims; they're not a competitor.
+        if (id === beliefs.teammate.id) continue;
 
         const opponent_distance = distance(position, { x: opponent_log.x, y: opponent_log.y });
         // Only consider agents that are closer to the target than me and within a certain range
-        if (opponent_distance < distance_from_me && distance_from_me <= 5) { 
+        if (opponent_distance < distance_from_me && distance_from_me <= 5) {
             penalty += 10; // Higher penalty for closer agents
         }
     }

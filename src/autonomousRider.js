@@ -1,5 +1,6 @@
 import { updateInfoOtherAgents } from "./agent/beliefs/otherAgents.js";
 import { Agent, getMapConfig, processMapData, updateInfoAgent, updatePerceivedParcels, optionsGeneration } from "./agent/index.js";
+import { initCoordination, shareBeliefs } from "./agent/coordination/index.js";
 import { client } from "./config/index.js";
     
 console.log("Start...")
@@ -55,6 +56,8 @@ client.onParcelsSensing(async (parcels) => {
 
     if (!initialized) return;
 
+    shareBeliefs(); // Part 2: forward perception to the teammate (throttled, no-op solo)
+
     try {
         await optionsGeneration();
     } catch (e) {
@@ -68,6 +71,8 @@ client.onAgentsSensing(async (agents) => {
     checkAllReceived();
 
     if (!initialized) return;
+
+    shareBeliefs(); // Part 2: forward perception to the teammate (throttled, no-op solo)
 
     try {
         await optionsGeneration();
@@ -88,7 +93,11 @@ await Promise.race([
 
 initialized = true;
 
-// Function to trigger the agent when parcels are sensed 
+// Part 2: start team coordination (discovery + belief/claim exchange).
+// No-op unless team mode is enabled, so single-agent behaviour is preserved.
+initCoordination();
+
+// Function to trigger the agent when parcels are sensed
 newAgent.start();
 
 export {newAgent};
