@@ -143,10 +143,20 @@ class IntentionRevision {
             this.#failureCount.get(getIntentionKey(intention2.predicate)) || 0
         );
 
-        console.log(`Intention comparison: score1=${score1}, score2=${score2}`);
+        // Hysteresis: require the challenger to beat the incumbent by a
+        // meaningful margin (10%) before swapping. Otherwise dijkstra-distance
+        // fluctuations cause two comparable options to flip which is best on
+        // every tick, and the agent bounces between them without progress.
+        // For non-positive incumbent scores we fall back to strict >, which
+        // preserves the swap when the incumbent is genuinely worse than the
+        // challenger and avoids the sign-flip weirdness of multiplying a
+        // negative number by 1.10 (which would make the threshold easier).
+        const SWAP_MARGIN = 1.10;
+        const threshold = score1 > 0 ? score1 * SWAP_MARGIN : score1;
 
-        // Return true if intention2 has higher score (should swap)
-        return score2 > score1;
+        console.log(`Intention comparison: score1=${score1}, score2=${score2}, threshold=${threshold}`);
+
+        return score2 > threshold;
     }
 
     /**

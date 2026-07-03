@@ -4,14 +4,17 @@ import { client } from "../../config/index.js";
 import { beliefs, constantBeliefs, GO_TO, ERROR_CODES } from "../index.js";
 import { findBestPath, isTileFree, addTemporaryBlockedTile, clearOldBlockedTiles } from "./utilsPlanning.js";
 
-const waitForIntegerPosition = async () => {
-    while (true) {
-        const meUpdate = await new Promise(res => client.onceYou(res));
-        if (meUpdate.x % 1 == 0 && meUpdate.y % 1 == 0) {
-            return;
-        }
-    }
-};
+/**
+ * Optional move-tracing instrumentation. Enable with `DEBUG_MOVE=1`.
+ * Trace lines are written directly to stdout to bypass DeliverooApi's
+ * `console.log` override (which mirrors every log line to the server via
+ * `emitLog` and can add its own backpressure).
+ */
+const TRACE = process.env.DEBUG_MOVE === '1';
+const trace = TRACE
+    ? (...parts) => process.stdout.write(`[TRACE t=${Date.now()}] ${parts.join(' ')}\n`)
+    : () => {};
+let moveSeq = 0;
 
 class BlindMove extends Plan {
 
@@ -48,8 +51,8 @@ class BlindMove extends Plan {
                 const nextDest = path[i];
                 const nextCoordinates = nextDest.split("-").map(Number);
 
-                // Check if the agent has reached integer coordinates
-                const check = waitForIntegerPosition();
+                const seq = ++moveSeq;
+                trace(`#${seq} iter start i=${i} at=(${beliefs.me.x},${beliefs.me.y}) next=${nextDest}`);
 
                 // Check if tile is free
                 if (!isTileFree(nextCoordinates)) {
@@ -145,15 +148,18 @@ class BlindMove extends Plan {
                 }
 
                 // Execute movement
+                let dir = null;
+                if (nextCoordinates[0] > beliefs.me.x) dir = 'right';
+                else if (nextCoordinates[0] < beliefs.me.x) dir = 'left';
+                else if (nextCoordinates[1] > beliefs.me.y) dir = 'up';
+                else if (nextCoordinates[1] < beliefs.me.y) dir = 'down';
+
                 let movement_status = false;
-                if (nextCoordinates[0] > beliefs.me.x) {
-                    movement_status = await client.emitMove('right');
-                } else if (nextCoordinates[0] < beliefs.me.x) {
-                    movement_status = await client.emitMove('left');
-                } else if (nextCoordinates[1] > beliefs.me.y) {
-                    movement_status = await client.emitMove('up');
-                } else if (nextCoordinates[1] < beliefs.me.y) {
-                    movement_status = await client.emitMove('down');
+                if (dir) {
+                    trace(`#${seq} emitMove send dir=${dir}`);
+                    const t0 = Date.now();
+                    movement_status = await client.emitMove(dir);
+                    trace(`#${seq} emitMove ack status=${movement_status} Δ=${Date.now() - t0}ms`);
                 }
 
                 if (!movement_status) {
@@ -180,9 +186,17 @@ class BlindMove extends Plan {
 
                 if (this.stopped) throw [ERROR_CODES.STOPPED];
 
-                await check;
-
-                if (this.stopped) throw [ERROR_CODES.STOPPED];
+                // No explicit "wait for integer position" here. The DeliverooApi
+                // delivers 'you' events (intermediate + integer) BEFORE the move
+                // ack over the same socket, so by the time `emitMove` above has
+                // resolved, the persistent `onYou` handler has already updated
+                // `beliefs.me` to the target tile.
+                //
+                // The previous `waitForIntegerPosition` used `once('you')`, which
+                // races with socket.io's synchronous dispatch: if both `you`
+                // packets land in a single socket read, the intermediate one
+                // fires the once, and the integer one is emitted with no once
+                // registered — hanging the plan forever.
 
                 // Reset replan attempts on successful movement
                 replanAttempts = 0;
