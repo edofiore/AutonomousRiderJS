@@ -1,9 +1,11 @@
 import { client } from "../../config/index.js";
 import { default as config } from "../../config/config.js";
 import { beliefs, constantBeliefs } from "../beliefs/beliefs.js";
-import { getIntentionKey } from "../utils.js";
+import { getIntentionKey, GO_PICK_UP, QUEUE_SWAP_STOP_CODE } from "../utils.js";
 import { MSG, CLAIM_TTL, buildMessage, isTeamMessage } from "./messages.js";
 import { partitionTick } from "./partitionEA.js";
+import { calculateScore } from "../reasoning/reasoning.js";
+import { newAgent } from "../../autonomousRider.js";
 
 /**
  * Team coordination (Part 2).
@@ -72,6 +74,30 @@ const mergeSharedAgents = (agents) => {
     }
 };
 
+/**
+ * Part 2: retroactive claim honoring. Claims normally only filter option
+ * GENERATION; but claims are announced when execution starts, so both agents
+ * can commit to the same parcel within that race window and the loser would
+ * keep walking to a parcel it can never win. When a claim arrives for a
+ * pickup we already have queued or executing, re-run the same comparison
+ * used at generation time and abandon our intention if the teammate wins.
+ * Pickups only: parcels are rivalrous, while delivery/wander spots can be
+ * shared, so preempting those would only hurt.
+ */
+const preemptClaimedIntention = (intentionKey) => {
+    const queue = newAgent?.intentionRevision?.intention_queue;
+    if (!queue?.length) return;
+
+    const intention = queue.find(i => getIntentionKey(i.predicate) === intentionKey);
+    if (!intention || intention.predicate[0] !== GO_PICK_UP || intention.stopped) return;
+
+    const myScore = calculateScore(intention.predicate, { x: beliefs.me.x, y: beliefs.me.y });
+    if (isClaimedByTeammate(intentionKey, myScore)) {
+        console.log(`[TEAM] Teammate's claim on ${intentionKey} beats ours (${myScore}); abandoning it`);
+        intention.stop(QUEUE_SWAP_STOP_CODE); // interruption, not a failure
+    }
+};
+
 /** Dispatch an incoming teammate message. */
 const onTeamMessage = (id, name, msg /*, reply */) => {
     if (!config.team.enabled || !isTeamMessage(msg)) return;
@@ -101,7 +127,10 @@ const onTeamMessage = (id, name, msg /*, reply */) => {
 
         case MSG.CLAIM: {
             const { key, parcelId, x, y, score } = msg.payload ?? {};
-            if (key) beliefs.teamClaims.set(key, { parcelId, x, y, score, timestamp: Date.now() });
+            if (key) {
+                beliefs.teamClaims.set(key, { parcelId, x, y, score, timestamp: Date.now() });
+                preemptClaimedIntention(key);
+            }
             break;
         }
 
