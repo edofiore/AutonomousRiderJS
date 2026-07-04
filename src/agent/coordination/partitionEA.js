@@ -1,4 +1,5 @@
 import { beliefs, constantBeliefs } from "../beliefs/beliefs.js";
+import { getSpawnerDistances } from "../planning/spawnerDistances.js";
 
 /**
  * Evolutionary map partitioning (Part 2 team strategy).
@@ -52,7 +53,7 @@ const PRESSURE_RADIUS = 5;      // spawners within this graph distance of an opp
 const OPPONENT_FRESHNESS = 10000; // ignore opponent sightings older than this (ms)
 const PARCEL_BONUS = 0.5;       // MAX extra weight for a spawner with an uncollected parcel on it (scaled by the parcel's value, see computeWeights)
 
-// Static, computed once from the map
+// Static, populated once from the shared spawner-distance cache
 let spawnerIds = null;      // ["x-y", ...]
 let spawnerIndex = null;    // Map<"x-y", i>
 let distFrom = null;        // Map<"x-y", Map<nodeId, dist>> BFS from each spawner
@@ -65,41 +66,6 @@ let pressures = null;       // Float64Array, opponent pressure per spawner
 let version = 0;
 let activeGenome = null;    // currently adopted & broadcast partition
 let activeMyLabel = 0;      // which label of activeGenome is my zone (frozen at adoption)
-
-/**
- * Breadth-first search from `start`, returning Map<nodeId, steps> with the
- * shortest-path length (in agent moves) to every reachable tile.
- *
- * Map edges connect orthogonally adjacent walkable tiles, so every edge
- * costs exactly 1 move — which is why BFS suffices instead of Dijkstra:
- * nodes are dequeued ring by ring in non-decreasing distance order, so the
- * FIRST time a node is discovered is via a shortest path. Its distance is
- * the parent's `d + 1` (one more move), recorded once and never updated
- * (hence the `!dist.has(nb)` guard).
- *
- * `qi` is a manual dequeue pointer: `queue[qi++]` is O(1), whereas
- * `queue.shift()` would re-index the whole array on every dequeue.
- *
- * The graph is undirected, so dist(spawner → tile) == dist(tile → spawner);
- * callers exploit this to look up agent→spawner distances in the spawner's
- * own table without ever running a BFS from the agent's position.
- */
-const bfsFrom = (graph, start) => {
-    const dist = new Map([[start, 0]]);
-    const queue = [start];
-    let qi = 0;
-    while (qi < queue.length) {
-        const node = queue[qi++];
-        const d = dist.get(node);
-        for (const nb of graph.neighbors(node)) {
-            if (!dist.has(nb)) {
-                dist.set(nb, d + 1);
-                queue.push(nb);
-            }
-        }
-    }
-    return dist;
-};
 
 const randomGenome = (size) => {
     const g = new Uint8Array(size);
@@ -125,17 +91,8 @@ const medianSplitGenome = (axis) => {
 const ensureInit = () => {
     if (spawnerIds) return spawnerIds.length >= 2;
 
-    const graph = constantBeliefs.map.mapGraph;
-    spawnerIds = constantBeliefs.map.parcelSpawners.map(([x, y]) => `${x}-${y}`);
-    spawnerIndex = new Map(spawnerIds.map((id, i) => [id, i]));
+    ({ spawnerIds, spawnerIndex, distFrom, maxDist } = getSpawnerDistances());
     if (spawnerIds.length < 2) return false;
-
-    distFrom = new Map();
-    for (const id of spawnerIds) {
-        const dist = bfsFrom(graph, id);
-        distFrom.set(id, dist);
-        for (const d of dist.values()) if (d > maxDist) maxDist = d;
-    }
 
     // k-nearest neighbor pairs among spawners (deduplicated)
     const pairKeys = new Set();

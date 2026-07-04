@@ -1,5 +1,6 @@
 import {beliefs, constantBeliefs, findNearestDeliverySpot, findFurthestParcelSpawner, GO_TO, GO_DELIVER, GO_PICK_UP, isIntentionAlreadyQueued, distance, getRewardAtDestination, getIntentionKey } from "../index.js"
 import { isClaimedByTeammate } from "../coordination/index.js";
+import { nextPatrolStops, advanceCursor } from "./tourEA.js";
 import { newAgent } from "../../autonomousRider.js";
 
 // Keys we are currently yielding to the teammate. Used to log a yield only on
@@ -100,33 +101,39 @@ async function optionsGeneration() {
     }
 
     if (options.size == 0) {
-        // Wander fallback: iterate spawners from FARTHEST to nearest and pick
-        // the first one the teammate isn't already heading to, so the two
-        // agents naturally explore different parts of the map.
-        const me_pos = {x: beliefs.me.x, y: beliefs.me.y};
-        let candidate_spots = [...constantBeliefs.map.parcelSpawners].map(([x, y]) => ({x, y}));
+        // Wander: follow the evolved patrol tour (tourEA). The tour already
+        // restricts to our evolved zone when the team partition is active,
+        // and covers the whole map when solo. Skip generation entirely while
+        // a go_to is already queued: pushing another one would be dropped by
+        // intention revision anyway, and advancing the patrol cursor for a
+        // target we never commit to would skip stops without visiting them.
+        const wander_already_queued = intention_queue.some(i => i?.predicate?.[0] === GO_TO);
 
-        // Part 2: when an evolved partition is active, patrol only our own
-        // zone's spawners (soft restriction: pickups/deliveries stay global,
-        // and we fall back to the whole map if our zone is empty).
-        if (beliefs.zones?.mine?.size > 0) {
-            const zone_spots = candidate_spots.filter(s => beliefs.zones.mine.has(`${s.x}-${s.y}`));
-            if (zone_spots.length > 0) candidate_spots = zone_spots;
-        }
+        if (!wander_already_queued) {
+            let candidates = nextPatrolStops()
+                .map(id => { const [x, y] = id.split('-').map(Number); return { x, y, id }; });
 
-        const spots = candidate_spots
-            .sort((a, b) => distance(me_pos, b) - distance(me_pos, a));
+            if (candidates.length === 0) {
+                // Legacy fallback (e.g. map without spawner tiles in the cache
+                // yet): farthest-first sweep over all spawners.
+                const me_pos = {x: beliefs.me.x, y: beliefs.me.y};
+                candidates = [...constantBeliefs.map.parcelSpawners]
+                    .map(([x, y]) => ({x, y, id: `${x}-${y}`}))
+                    .sort((a, b) => distance(me_pos, b) - distance(me_pos, a));
+            }
 
-        for (const spot of spots) {
-            const go_to_option = [GO_TO, parseInt(spot.x), parseInt(spot.y)];
-            const key = getIntentionKey(go_to_option);
-            if (isIntentionAlreadyQueued(intention_queue, key)) continue;
-            if (beliefs.invalidOptions.has(key)) continue;
-            // Flat score 1 mirrors findBestOption's go_to scoring and
-            // IntentionRevision's announceClaim score for wander.
-            if (isClaimedByTeammate(key, 1)) continue;
-            options.set(key, go_to_option);
-            break;
+            for (const spot of candidates) {
+                const go_to_option = [GO_TO, parseInt(spot.x), parseInt(spot.y)];
+                const key = getIntentionKey(go_to_option);
+                if (isIntentionAlreadyQueued(intention_queue, key)) continue;
+                if (beliefs.invalidOptions.has(key)) continue;
+                // Flat score 1 mirrors findBestOption's go_to scoring and
+                // IntentionRevision's announceClaim score for wander.
+                if (isClaimedByTeammate(key, 1)) continue;
+                options.set(key, go_to_option);
+                advanceCursor(spot.id);
+                break;
+            }
         }
     }
     
