@@ -3,6 +3,12 @@ import { isClaimedByTeammate } from "../coordination/index.js";
 import { nextPatrolStops, advanceCursor } from "./tourEA.js";
 import { newAgent } from "../../autonomousRider.js";
 
+// Part 2: multiplier applied to the reward component of a pickup whose parcel
+// lies OUTSIDE our evolved zone (only while a partition is active). Soft
+// division of labor: each agent prefers its own half, but an out-of-zone
+// parcel still wins when its discounted value beats everything in-zone.
+const OUT_OF_ZONE_DISCOUNT = 0.65;
+
 // Keys we are currently yielding to the teammate. Used to log a yield only on
 // transition (first tick we start yielding a parcel), not on every options tick.
 let yieldedKeys = new Set();
@@ -12,6 +18,17 @@ async function optionsGeneration() {
     clearInvalidOptions();
 
     const intention_queue = newAgent.intentionRevision.intention_queue;
+
+    // Kill ghost commitments: the executing head intention is otherwise only
+    // validity-checked BEFORE achieve() starts, so if its parcel vanishes
+    // from beliefs mid-walk (picked up by someone, decayed away) the agent
+    // would finish the whole walk for nothing. Stop it here; the loop then
+    // discards it as an interruption, not a failure.
+    const head = intention_queue[0];
+    if (head && !head.stopped && !head.isStillValid()) {
+        console.log("Head intention no longer valid, stopping it:", head.predicate);
+        head.stop();
+    }
 
     /**
      * Options generation
@@ -240,6 +257,21 @@ const calculateScore = (predicate, agent_pos, failures = undefined) => {
 
             let nearest_delivery_from_parcel = findNearestDeliverySpot(target_pos);
             let total_reward_at_delivery = getRewardAtDestination(total_reward_at_pickup, target_pos, nearest_delivery_from_parcel, beliefs.me.carried_parcels_count + 1);
+
+            // Part 2: soft own-zone preference. Both agents rank the (shared)
+            // global parcel list with this same formula, so without a bias
+            // they compute the same best parcel and herd toward it. When the
+            // evolved partition is active, discount parcels outside my zone:
+            // the teammate applies the mirror-image discount, so contested
+            // rankings split apart, while a big enough out-of-zone parcel can
+            // still win. Applied only to a positive reward component (scaling
+            // a negative one would make out-of-zone look BETTER), and never
+            // to the risk/failure penalties below.
+            const parcel_tile = `${Math.floor(predicate[1])}-${Math.floor(predicate[2])}`;
+            const in_my_zone = !(beliefs.zones?.mine?.size > 0) || beliefs.zones.mine.has(parcel_tile);
+            if (!in_my_zone && total_reward_at_delivery > 0) {
+                total_reward_at_delivery *= OUT_OF_ZONE_DISCOUNT;
+            }
 
             score += total_reward_at_delivery;
         }
