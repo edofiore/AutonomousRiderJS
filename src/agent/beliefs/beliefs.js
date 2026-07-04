@@ -29,6 +29,14 @@ const beliefs = {
     // Parcels the teammate has committed to (so we don't chase the same one).
     // Map of < intentionKey, { parcelId, x, y, score, timestamp } >
     teamClaims: new Map(),
+
+    // Evolved map partition (Part 2 strategy). `mine` is the set of spawner
+    // tile ids ("x-y") this agent should patrol when idle; null = no
+    // partition active (solo mode, no teammate, or map with <2 spawners).
+    zones: {
+        version: 0,
+        mine: null,
+    },
 }
 
 

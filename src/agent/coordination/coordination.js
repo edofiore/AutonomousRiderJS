@@ -3,6 +3,7 @@ import { default as config } from "../../config/config.js";
 import { beliefs, constantBeliefs } from "../beliefs/beliefs.js";
 import { getIntentionKey } from "../utils.js";
 import { MSG, CLAIM_TTL, buildMessage, isTeamMessage } from "./messages.js";
+import { partitionTick } from "./partitionEA.js";
 
 /**
  * Team coordination (Part 2).
@@ -21,6 +22,15 @@ let lastBeliefShare = 0;
 let helloInterval = null;
 
 const hasTeammate = () => beliefs.teammate.id !== null;
+
+// Deterministic leader election: the agent with the lexicographically lower
+// id runs the partition EA and broadcasts the result. Both sides compute
+// this locally from the same two ids, so no negotiation is needed.
+const isLeader = () => hasTeammate() && beliefs.me.id !== null && beliefs.me.id < beliefs.teammate.id;
+
+// How long without any teammate message before we consider them gone and
+// drop the partition (reverting to whole-map wandering).
+const TEAMMATE_TIMEOUT = 10000;
 
 /** Record (or refresh) the teammate identity, ignoring our own echoes. */
 const setTeammate = (id, name) => {
@@ -98,6 +108,20 @@ const onTeamMessage = (id, name, msg /*, reply */) => {
         case MSG.RELEASE:
             if (msg.payload?.key) beliefs.teamClaims.delete(msg.payload.key);
             break;
+
+        case MSG.ZONES: {
+            setTeammate(id, name);
+            const { assignment, version } = msg.payload ?? {};
+            const mine = assignment?.[beliefs.me.id];
+            if (Array.isArray(mine) && (version ?? 0) >= beliefs.zones.version) {
+                const changed = !beliefs.zones.mine || beliefs.zones.mine.size !== mine.length
+                    || mine.some(t => !beliefs.zones.mine.has(t));
+                beliefs.zones.mine = new Set(mine);
+                beliefs.zones.version = version ?? beliefs.zones.version;
+                if (changed) console.log(`[TEAM] Adopted evolved zone v${version}: ${mine.length} spawners`);
+            }
+            break;
+        }
     }
 };
 
@@ -191,6 +215,25 @@ const initCoordination = () => {
     helloInterval = setInterval(() => {
         announce();
         pruneStaleClaims();
+
+        // Teammate gone silent: drop the partition, wander the whole map again.
+        if (hasTeammate() && Date.now() - beliefs.teammate.lastSeen > TEAMMATE_TIMEOUT) {
+            if (beliefs.zones.mine) {
+                console.log('[TEAM] Teammate silent, dropping evolved zones');
+                beliefs.zones.mine = null;
+            }
+        }
+
+        // Leader evolves the map partition live and shares it (mental-state
+        // exchange: the evolved strategy itself is broadcast to the teammate).
+        if (isLeader()) {
+            const result = partitionTick();
+            if (result) {
+                beliefs.zones.mine = new Set(result.assignment[beliefs.me.id]);
+                beliefs.zones.version = result.version;
+                client.emitSay(beliefs.teammate.id, buildMessage(MSG.ZONES, result));
+            }
+        }
     }, 2000);
 };
 

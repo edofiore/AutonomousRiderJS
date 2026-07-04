@@ -10,6 +10,7 @@ const MSG = Object.freeze({
     AGENTS:    'agents',     // share sensed opponents (belief sharing)
     CLAIM:     'claim',      // "I am committing to pick up this parcel"
     RELEASE:   'release',    // "I am no longer pursuing this parcel"
+    ZONES:     'zones',      // leader broadcasts the evolved map partition
 });
 
 /**

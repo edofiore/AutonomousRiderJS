@@ -104,8 +104,17 @@ async function optionsGeneration() {
         // the first one the teammate isn't already heading to, so the two
         // agents naturally explore different parts of the map.
         const me_pos = {x: beliefs.me.x, y: beliefs.me.y};
-        const spots = [...constantBeliefs.map.parcelSpawners]
-            .map(([x, y]) => ({x, y}))
+        let candidate_spots = [...constantBeliefs.map.parcelSpawners].map(([x, y]) => ({x, y}));
+
+        // Part 2: when an evolved partition is active, patrol only our own
+        // zone's spawners (soft restriction: pickups/deliveries stay global,
+        // and we fall back to the whole map if our zone is empty).
+        if (beliefs.zones?.mine?.size > 0) {
+            const zone_spots = candidate_spots.filter(s => beliefs.zones.mine.has(`${s.x}-${s.y}`));
+            if (zone_spots.length > 0) candidate_spots = zone_spots;
+        }
+
+        const spots = candidate_spots
             .sort((a, b) => distance(me_pos, b) - distance(me_pos, a));
 
         for (const spot of spots) {
