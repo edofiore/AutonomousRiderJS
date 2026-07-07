@@ -200,8 +200,24 @@ const findAlternativePath = async (current_pos, destination, avoidTile) => {
 };
 
 /**
+ * If the tile we just found blocked is occupied by the TEAMMATE, record the
+ * timestamp: coordination uses it to fast-track a handoff proposal instead of
+ * letting both agents grind through fail/replan cycles (each failed move also
+ * costs a server penalty).
+ * @param {[number, number]} nextCoordinates
+ */
+const noteTeammateBlock = (nextCoordinates) => {
+    if (!beliefs.teammate?.id) return;
+    const mate = beliefs.otherAgents.get(beliefs.teammate.id);
+    if (!mate) return;
+    if (Math.floor(mate.x) === nextCoordinates[0] && Math.floor(mate.y) === nextCoordinates[1]) {
+        beliefs.teammateBlockedAt = Date.now();
+    }
+};
+
+/**
  * Check if a tile is free (not occupied by other agents)
- * @param {[number, number]} nextCoordinates 
+ * @param {[number, number]} nextCoordinates
  * @returns {boolean}
  */
 const isTileFree = (nextCoordinates) => {
@@ -307,12 +323,13 @@ const isDestinationReachable = async (current_pos, destination) => {
     }
 };
 
-export { 
-    findBestPath, 
+export {
+    findBestPath,
     findAlternativePath,
     findSafestPath,
-    isTileFree, 
-    addTemporaryBlockedTile, 
+    isTileFree,
+    noteTeammateBlock,
+    addTemporaryBlockedTile,
     clearOldBlockedTiles,
     isTileTemporarilyBlocked,
     isDestinationReachable

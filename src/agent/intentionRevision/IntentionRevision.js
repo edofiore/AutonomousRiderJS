@@ -183,6 +183,14 @@ class IntentionRevision {
      */
     async loop() {
         while (true) {
+            // Part 2: hold still while a handoff drop is executing — starting
+            // the next intention would issue moves that make the server
+            // reject the emitPutdown.
+            if (beliefs.handoffInProgress) {
+                await new Promise(res => setTimeout(res, 50));
+                continue;
+            }
+
             if (this.intention_queue.length > 0) {
                 console.log("IntentionRevision.loop", this.intention_queue.map(i => i?.predicate || 'undefined'));
                 
@@ -205,7 +213,10 @@ class IntentionRevision {
                 // to this target so the teammate picks a different one. Covers
                 // pickups, delivery spots, and wander spots alike. For go_to
                 // (wander) we use a flat score of 1, matching findBestOption.
-                {
+                // Skip intentions that were already stopped (e.g. purged
+                // donated-parcel pickups): achieve() will throw immediately,
+                // and claiming first would wrongly preempt the teammate.
+                if (!intention.stopped) {
                     const score = intention.predicate[0] === GO_TO
                         ? 1
                         : calculateScore(intention.predicate, { x: beliefs.me.x, y: beliefs.me.y });

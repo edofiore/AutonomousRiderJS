@@ -22,8 +22,10 @@ const beliefs = {
     teammate: {
         id: null,       // Deliveroo agent id of the teammate (null until discovered)
         name: null,
-        x: null,
+        x: null,        // last self-reported position (heartbeat, ~200ms fresh)
         y: null,
+        carriedCount: 0,   // self-reported carried parcels
+        carriedReward: 0,  // self-reported carried reward
         lastSeen: 0,    // timestamp of the last message received from the teammate
     },
     // Parcels the teammate has committed to (so we don't chase the same one).
@@ -37,6 +39,16 @@ const beliefs = {
         version: 0,
         mine: null,
     },
+
+    // True while we are executing a handoff drop: the intention loop pauses
+    // so no new movement races the emitPutdown (the server rejects actions
+    // issued while a move is in progress).
+    handoffInProgress: false,
+
+    // Timestamp of the last time our movement was blocked by the TEAMMATE's
+    // body (not an opponent). Used to fast-track handoff negotiation: a
+    // mutual block should be resolved by talking, not by fail/retry churn.
+    teammateBlockedAt: 0,
 }
 
 

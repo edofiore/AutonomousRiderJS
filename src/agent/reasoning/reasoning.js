@@ -9,6 +9,13 @@ import { newAgent } from "../../autonomousRider.js";
 // parcel still wins when its discounted value beats everything in-zone.
 const OUT_OF_ZONE_DISCOUNT = 0.65;
 
+// Part 2: multiplier applied to the reward component of a pickup when the
+// TEAMMATE is much closer to the parcel than we are (mirror of the opponent
+// risk penalty, which deliberately excludes the teammate). They will collect
+// it anyway — racing our own teammate across the map is pure waste. Soft
+// discount, and only the farther agent applies it, so exactly one still goes.
+const TEAMMATE_PROXIMITY_DISCOUNT = 0.5;
+
 // Keys we are currently yielding to the teammate. Used to log a yield only on
 // transition (first tick we start yielding a parcel), not on every options tick.
 let yieldedKeys = new Set();
@@ -30,6 +37,10 @@ async function optionsGeneration() {
         head.stop();
     }
 
+    // Fresh teammate sighting, used by several filters below.
+    const mate_sighting = beliefs.teammate.id ? beliefs.otherAgents.get(beliefs.teammate.id) : null;
+    const mate_pos = mate_sighting && Date.now() - mate_sighting.timestamp < 5000 ? mate_sighting : null;
+
     /**
      * Options generation
      */
@@ -43,6 +54,12 @@ async function optionsGeneration() {
          * TODO: use finalReward instead of parcel reward
          */
         if (!parcel.carriedBy && parcel.reward > 0) {    // TODO: Check if this is necessary, at the moment we store only free parcels
+            // Parcel sitting under the teammate's feet: they collect it just
+            // by standing there — targeting it is categorically hopeless (we
+            // can't even step onto the tile). Unlike merely-closer parcels
+            // (which get the proximity DISCOUNT), this is a hard skip.
+            if (mate_pos && Math.floor(mate_pos.x) === Math.floor(parcel.x) && Math.floor(mate_pos.y) === Math.floor(parcel.y)) continue;
+
             const new_option = [GO_PICK_UP, parcel.x, parcel.y, parcel.id];
             const option_key = getIntentionKey(new_option);
             if (!isIntentionAlreadyQueued(intention_queue, option_key) && !beliefs.invalidOptions.has(option_key)) {
@@ -105,15 +122,29 @@ async function optionsGeneration() {
             .map(([x, y]) => ({x, y}))
             .sort((a, b) => distance(me_pos, a) - distance(me_pos, b));
 
+        // Prefer a delivery spot the teammate hasn't claimed, but treat the
+        // claim as a SOFT preference: delivery tiles aren't rivalrous (both
+        // agents can put down back-to-back), so when every spot is claimed —
+        // e.g. a single-delivery-zone map while the teammate is on its own
+        // delivery run — we still deliver to the nearest one rather than
+        // sitting on decaying cargo with no delivery option at all.
+        let claimed_fallback = null;
         for (const spot of spots) {
             const delivery_option = [GO_DELIVER, parseInt(spot.x), parseInt(spot.y)];
             const key = getIntentionKey(delivery_option);
             if (isIntentionAlreadyQueued(intention_queue, key)) continue;
             if (beliefs.invalidOptions.has(key)) continue;
             const my_score = calculateScore(delivery_option, me_pos);
-            if (isClaimedByTeammate(key, my_score)) continue;
+            if (isClaimedByTeammate(key, my_score)) {
+                claimed_fallback = claimed_fallback ?? { key, option: delivery_option };
+                continue;
+            }
             options.set(key, delivery_option);
+            claimed_fallback = null; // an unclaimed spot won; drop the fallback
             break;
+        }
+        if (claimed_fallback) {
+            options.set(claimed_fallback.key, claimed_fallback.option);
         }
     }
 
@@ -139,7 +170,24 @@ async function optionsGeneration() {
                     .sort((a, b) => distance(me_pos, b) - distance(me_pos, a));
             }
 
+            // Approaching a LOADED teammate while we carry nothing is exactly
+            // how handoffs get triggered (the courier walking up to the
+            // harvester), so in that case the occupied-stop skip below yields.
+            const approach_for_handoff =
+                (beliefs.teammate.carriedCount ?? 0) > 0 && !(beliefs.me.carried_parcels_count > 0);
+
             for (const spot of candidates) {
+                // Already standing on this stop: a go_to to our own tile
+                // completes instantly and gets re-generated forever (a hot
+                // busy-loop on single-spawner maps where the agent camps its
+                // only patrol stop). Nothing to gain by "wandering" here.
+                if (Math.floor(beliefs.me.x) === spot.x && Math.floor(beliefs.me.y) === spot.y) continue;
+
+                // Stop currently occupied by the teammate: they are already
+                // observing it, and walking into their body just causes
+                // collisions (and, in corridors, mutual blocking).
+                if (!approach_for_handoff && mate_pos && Math.floor(mate_pos.x) === spot.x && Math.floor(mate_pos.y) === spot.y) continue;
+
                 const go_to_option = [GO_TO, parseInt(spot.x), parseInt(spot.y)];
                 const key = getIntentionKey(go_to_option);
                 if (isIntentionAlreadyQueued(intention_queue, key)) continue;
@@ -271,6 +319,19 @@ const calculateScore = (predicate, agent_pos, failures = undefined) => {
             const in_my_zone = !(beliefs.zones?.mine?.size > 0) || beliefs.zones.mine.has(parcel_tile);
             if (!in_my_zone && total_reward_at_delivery > 0) {
                 total_reward_at_delivery *= OUT_OF_ZONE_DISCOUNT;
+            }
+
+            // Teammate much closer to this parcel than us (graph distance):
+            // discount it — see TEAMMATE_PROXIMITY_DISCOUNT. Applied only to
+            // a positive reward component (scaling a negative one would make
+            // the doomed race look BETTER).
+            const mate_sighting = beliefs.teammate.id ? beliefs.otherAgents.get(beliefs.teammate.id) : null;
+            if (mate_sighting && Date.now() - mate_sighting.timestamp < 5000 && total_reward_at_delivery > 0) {
+                const my_dist = distance(agent_pos, target_pos);
+                const mate_dist = distance({ x: mate_sighting.x, y: mate_sighting.y }, target_pos);
+                if (mate_dist < my_dist / 2) {
+                    total_reward_at_delivery *= TEAMMATE_PROXIMITY_DISCOUNT;
+                }
             }
 
             score += total_reward_at_delivery;

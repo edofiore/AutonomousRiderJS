@@ -2,7 +2,7 @@ import { Plan } from "./index.js";
 import dijkstra from 'graphology-shortest-path';
 import { client } from "../../config/index.js";
 import { beliefs, constantBeliefs, GO_TO, ERROR_CODES } from "../index.js";
-import { findBestPath, isTileFree, addTemporaryBlockedTile, clearOldBlockedTiles } from "./utilsPlanning.js";
+import { findBestPath, isTileFree, noteTeammateBlock, addTemporaryBlockedTile, clearOldBlockedTiles } from "./utilsPlanning.js";
 
 /**
  * Optional move-tracing instrumentation. Enable with `DEBUG_MOVE=1`.
@@ -57,6 +57,7 @@ class BlindMove extends Plan {
                 // Check if tile is free
                 if (!isTileFree(nextCoordinates)) {
                     console.log(`Tile ${nextCoordinates} is blocked. Attempting to replan...`);
+                    noteTeammateBlock(nextCoordinates);
 
                     // Add the blocked tile to temporary blocked tiles
                     addTemporaryBlockedTile(nextDest);
@@ -127,6 +128,7 @@ class BlindMove extends Plan {
 
                     if (!isTileFree(nextCoordinates)) {
                         console.log(`Tile ${nextCoordinates} became blocked right before move. Replanning...`);
+                        noteTeammateBlock(nextCoordinates);
                         addTemporaryBlockedTile(nextDest);
 
                         if (replanAttempts >= maxReplanAttempts) {
@@ -164,7 +166,8 @@ class BlindMove extends Plan {
 
                 if (!movement_status) {
                     console.log("Movement failed, possibly due to collision");
-                    
+                    noteTeammateBlock(nextCoordinates);
+
                     // Add current tile as blocked and try to replan
                     addTemporaryBlockedTile(nextDest);
                     

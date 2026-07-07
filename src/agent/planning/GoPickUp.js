@@ -1,4 +1,4 @@
-import { Plan, GO_PICK_UP, distance, beliefs, updateStoredParcels, ERROR_CODES } from "../index.js";
+import { Plan, GO_PICK_UP, distance, beliefs, updateStoredParcels, ERROR_CODES, getIntentionKey } from "../index.js";
 import { findBestPath } from "./utilsPlanning.js";
 import { client } from "../../config/index.js";
 
@@ -122,9 +122,16 @@ class GoPickUp extends Plan {
                 // Skip if it's the main target, already carried, or has no reward
                 const parcel = parcelData.parcel;
 
-                if (parcelId === mainParcelId || 
-                    parcel.carriedBy || 
+                if (parcelId === mainParcelId ||
+                    parcel.carriedBy ||
                     parcel.reward < minRewardThreshold) {
+                    continue;
+                }
+
+                // Skip parcels marked invalid (e.g. ones we just handed off to
+                // the teammate) — along-path pickup bypasses optionsGeneration,
+                // so it must honor the suppression list itself.
+                if (beliefs.invalidOptions.has(getIntentionKey([GO_PICK_UP, parcel.x, parcel.y, parcelId]))) {
                     continue;
                 }
 

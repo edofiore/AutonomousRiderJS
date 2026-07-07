@@ -11,6 +11,8 @@ const MSG = Object.freeze({
     CLAIM:     'claim',      // "I am committing to pick up this parcel"
     RELEASE:   'release',    // "I am no longer pursuing this parcel"
     ZONES:     'zones',      // leader broadcasts the evolved map partition
+    HANDOFF:      'handoff',      // ask: "I'm next to you carrying parcels — will you take them?"
+    HANDOFF_DONE: 'handoff_done', // say: "dropped N parcels for you at (x,y)"
 });
 
 /**
