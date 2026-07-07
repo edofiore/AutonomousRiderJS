@@ -14,6 +14,14 @@ const updatePerceivedParcels = async ( perceivedParcels ) => {
     // Adds new uncarried perceived parcels
     for (const p of perceivedParcels) {
 
+        // Malformed-sensing guard: the server reads parcel.xy?.x, so a rare
+        // race (e.g. mid-putdown on a delivery tile) can deliver a parcel
+        // with undefined coordinates or reward. Storing one poisons the
+        // scoring pipeline (every calculateScore throws BAD_COORDINATES and
+        // optionsGeneration aborts on every tick) — reject it here, at the
+        // single point where sensed parcels enter beliefs.
+        if (!Number.isFinite(p.x) || !Number.isFinite(p.y) || !Number.isFinite(p.reward)) continue;
+
         // Adds parcels that are perceived and not being carried by any agent
         if( !p.carriedBy ){
             beliefs.storedParcels.set( p.id, { parcel: p, timestamp: now, visible: true} );
@@ -41,7 +49,9 @@ const updatePerceivedParcels = async ( perceivedParcels ) => {
             const decay = ((now - parcel_data.timestamp) / 1000) / constantBeliefs.config.PDI;
             const parcel_current_reward = parcel_data.parcel.reward - decay;
 
-            if(parcel_current_reward <= 0) {
+            // NaN-safe: !(x > 0) also catches NaN rewards, which must be
+            // deleted too or the entry becomes immortal (NaN <= 0 is false).
+            if (!(parcel_current_reward > 0)) {
                 beliefs.storedParcels.delete(parcel_data.parcel.id);
             } else {
                 beliefs.storedParcels.set(parcel_data.parcel.id, { ...parcel_data, parcel: { ...parcel_data.parcel, reward: parcel_current_reward }, timestamp: now, visible: false });
@@ -63,7 +73,9 @@ const updateStoredParcels = async () => {
             const decay = ((now - parcel_data.timestamp) / 1000) / constantBeliefs.config.PDI;
             const parcel_current_reward = parcel_data.parcel.reward - decay;
 
-            if(parcel_current_reward <= 0) {
+            // NaN-safe: !(x > 0) also catches NaN rewards, which must be
+            // deleted too or the entry becomes immortal (NaN <= 0 is false).
+            if (!(parcel_current_reward > 0)) {
                 beliefs.storedParcels.delete(parcel_data.parcel.id);
             } else {
                 beliefs.storedParcels.set(parcel_data.parcel.id, { ...parcel_data, parcel: { ...parcel_data.parcel, reward: parcel_current_reward }, timestamp: now });

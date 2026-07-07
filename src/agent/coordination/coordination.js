@@ -66,6 +66,7 @@ const mergeSharedParcels = (parcels) => {
     const now = Date.now();
     for (const p of parcels) {
         if (!p || p.carriedBy || !(p.reward > 0)) continue;
+        if (!Number.isFinite(p.x) || !Number.isFinite(p.y)) continue; // malformed share
         const existing = beliefs.storedParcels.get(p.id);
         if (existing?.visible) continue; // we can see it directly, keep ours
         beliefs.storedParcels.set(p.id, { parcel: p, timestamp: now, visible: false });

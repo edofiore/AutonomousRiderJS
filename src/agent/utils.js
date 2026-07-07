@@ -1,6 +1,14 @@
-import dijkstra from 'graphology-shortest-path';
 // Import only the variables that never will change during the execution
 import { beliefs, constantBeliefs } from './index.js';
+import { getDistanceTable } from './planning/spawnerDistances.js';
+
+// Debug logging: the per-tick reasoning chatter (score calculations, option
+// ranking, queue dumps) is invaluable when debugging but costs real time in
+// normal play — every line is formatted and written, thousands per minute.
+// Enable with DEBUG=1. Important events (pickups, deliveries, handoffs,
+// failures, [TEAM]/[EA]/[TOUR]) stay on plain console.log.
+const DEBUG = process.env.DEBUG === '1';
+const debugLog = (...args) => { if (DEBUG) console.log(...args); };
 
 const GO_TO = "go_to";
 const GO_PICK_UP = "go_pick_up";
@@ -49,20 +57,23 @@ const isInterruptionError = (error) => {
  * @returns {number} - The distance between two tiles
  */
 const distance = ( current_pos, target_pos ) => {
-    // console.log("{x1: %\i, y1: %\i}, {x2: %\i, y2: %\i}", x1, y1, x2, y2)
-    
     if(current_pos.x != undefined && current_pos.y != undefined && target_pos.x != undefined && target_pos.y != undefined) {
-        let path = dijkstra.bidirectional(constantBeliefs.map.mapGraph, Math.floor(current_pos.x) + "-" + Math.floor(current_pos.y), Math.floor(target_pos.x) + "-" + Math.floor(target_pos.y))
-    
-        if(!path){
-            if(constantBeliefs.map.mapGraph.hasNode(Math.floor(current_pos.x) + "-" + Math.floor(current_pos.y)) && constantBeliefs.map.mapGraph.hasNode(Math.floor(target_pos.x) + "-" + Math.floor(target_pos.y))){
-                console.log("WRONG POSITIONS:", Math.floor(current_pos.x) + "-" + Math.floor(current_pos.y), Math.floor(target_pos.x) + "-" + Math.floor(target_pos.y));
-            }
-            return Number.MAX_VALUE;
-        }
-        
-        return path.length - 1;
+        // O(1) lookup in a lazily-built BFS table keyed on the TARGET tile
+        // (targets — parcels, delivery spots, teammates — repeat constantly;
+        // the graph is undirected so from/to are interchangeable). This
+        // replaced a full Dijkstra per call: the scoring pipeline makes
+        // hundreds of distance() calls per options tick, which used to cost
+        // ~100 ms of event-loop time per tick and made the agents sluggish.
+        const from = Math.floor(current_pos.x) + "-" + Math.floor(current_pos.y);
+        const to = Math.floor(target_pos.x) + "-" + Math.floor(target_pos.y);
+
+        const table = getDistanceTable(to);
+        if (!table) return Number.MAX_VALUE; // target isn't a walkable tile
+
+        const d = table.get(from);
+        return d === undefined ? Number.MAX_VALUE : d; // undefined: unreachable (different component)
     } else {
+        console.log('BAD_COORDS stack:', new Error().stack.split('\n').slice(1,6).join(' | '));
         throw [ERROR_CODES.BAD_COORDINATES, current_pos, target_pos];
     }
 }
@@ -140,9 +151,10 @@ const isIntentionAlreadyQueued = (intention_queue, intentionKey) =>{
     return intention_queue.find((i) => getIntentionKey(i.predicate) == intentionKey);
 }
 
-export { 
+export {
     GO_TO, GO_PICK_UP, GO_DELIVER, BLOCKED_TILES, WALKABLE_SPAWNING_TILES, DELIVERABLE_TILES, WALKABLE_TILES,
     DEFAULT_STOP_CODE, QUEUE_SWAP_STOP_CODE,
     ERROR_CODES,
     RETRYABLE_ERROR_CODES, getErrorCode, getErrorStopCode, isInterruptionError,
+    DEBUG, debugLog,
     distance, findNearestDeliverySpot, findFurthestParcelSpawner, getRewardAtDestination, compareUrgency, isIntentionAlreadyQueued, getIntentionKey};

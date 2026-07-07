@@ -4,7 +4,7 @@
 
 import { beliefs } from "../beliefs/beliefs.js";
 import { planLibrary } from "../planning/index.js";
-import { GO_DELIVER, GO_PICK_UP, DEFAULT_STOP_CODE, ERROR_CODES } from "../utils.js";
+import { GO_DELIVER, GO_PICK_UP, DEFAULT_STOP_CODE, ERROR_CODES, debugLog } from "../utils.js";
 
 class Intention {
     // Plan currently used for achieving the intention
@@ -62,7 +62,7 @@ class Intention {
         
         const [action, x, y, p_id] = this.#predicate;
 
-        console.log(`Is intention ${action} ${x}-${y} still valid?`);
+        debugLog(`Is intention ${action} ${x}-${y} still valid?`);
 
         if(action == GO_PICK_UP) {
             let p = beliefs.storedParcels.get(p_id)?.parcel;

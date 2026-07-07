@@ -1,4 +1,4 @@
-import { Plan, GO_PICK_UP, distance, beliefs, updateStoredParcels, ERROR_CODES, getIntentionKey } from "../index.js";
+import { Plan, GO_PICK_UP, distance, beliefs, updateStoredParcels, ERROR_CODES, getIntentionKey, debugLog } from "../index.js";
 import { findBestPath } from "./utilsPlanning.js";
 import { client } from "../../config/index.js";
 
@@ -26,7 +26,7 @@ class GoPickUp extends Plan {
             id
         );
 
-        console.log(`Found ${parcelsAlongPath.length} parcels along the path to main target`);
+        debugLog(`Found ${parcelsAlongPath.length} parcels along the path to main target`);
 
         // Execute sub-intentions for parcels along the path
         for (const pathParcel of parcelsAlongPath) {
@@ -111,7 +111,7 @@ class GoPickUp extends Plan {
         try {
             // Get the optimal path to the target
             const pathToTarget = await findBestPath(start, target);
-            console.log("Path to target:", pathToTarget);
+            debugLog("Path to target:", pathToTarget);
 
             const pathParcels = [];
             const maxDetourDistance = 1; // Maximum detour distance to consider a parcel "along the path"
@@ -158,7 +158,7 @@ class GoPickUp extends Plan {
             // You could also sort by efficiency or other criteria
             pathParcels.sort((a, b) => a.distanceFromStart - b.distanceFromStart);
 
-            console.log("Parcels along path:", pathParcels.map(p => 
+            debugLog("Parcels along path:", pathParcels.map(p => 
                 `${p.id}(reward:${p.reward}, dist:${p.distanceFromStart})`
             ));
 

@@ -1,5 +1,5 @@
 import dijkstra from 'graphology-shortest-path';
-import { beliefs, constantBeliefs } from "../index.js";
+import { beliefs, constantBeliefs, debugLog } from "../index.js";
 
 /**
  * Enhanced blocked tile management structure
@@ -127,13 +127,13 @@ const findBestPath = async (current_pos, destination, allowTemporaryBlocked = fa
     
     // Remove temporarily blocked tiles if not allowing them
     if (!allowTemporaryBlocked && beliefs.tmpBlockedTiles?.length > 0) {
-        console.log("Removing temporarily blocked tiles from path calculation:");
+        debugLog("Removing temporarily blocked tiles from path calculation:");
         
         for (let blockedItem of beliefs.tmpBlockedTiles) {
             const blockedTile = typeof blockedItem === 'string' ? blockedItem : blockedItem.tile;
             
             if (mapGraph.hasNode(blockedTile)) {
-                console.log(`  - Removing blocked tile: ${blockedTile}`);
+                debugLog(`  - Removing blocked tile: ${blockedTile}`);
                 mapGraph.dropNode(blockedTile);
             }
         }
@@ -167,7 +167,7 @@ const findBestPath = async (current_pos, destination, allowTemporaryBlocked = fa
     
     path.shift();
 
-    console.log(`Path found: ${path.join(' -> ')}`);
+    debugLog(`Path found: ${path.join(' -> ')}`);
     return path;
 };
 

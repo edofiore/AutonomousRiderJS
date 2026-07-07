@@ -46,6 +46,31 @@ let spawnerIndex = null;    // Map<"x-y", i>
 let distFrom = null;        // Map<"x-y", Map<nodeId, dist>> BFS from each spawner
 let maxDist = 1;            // largest observed distance (normalization / penalty value)
 
+// General-purpose lazy distance tables, one BFS table per queried TARGET
+// tile, kept forever (the map is static). Query targets — parcels, delivery
+// spots, agent positions — repeat constantly, so this converges to a handful
+// of tables in practice and is bounded by the number of walkable tiles in the
+// worst case (~900 tables × ~900 entries ≈ tens of MB, acceptable). This is
+// what makes `distance()` a 0.2 µs lookup instead of a 0.2 ms Dijkstra run.
+const lazyTables = new Map(); // Map<tileId, Map<nodeId, dist>>
+
+/**
+ * BFS table for `tileId` (shortest steps from tileId to every reachable
+ * node; undirected graph, so it also answers node→tileId). Returns null when
+ * the tile isn't a walkable node.
+ */
+const getDistanceTable = (tileId) => {
+    if (distFrom?.has(tileId)) return distFrom.get(tileId); // reuse spawner tables
+    let table = lazyTables.get(tileId);
+    if (!table) {
+        const graph = constantBeliefs.map.mapGraph;
+        if (!graph.hasNode(tileId)) return null;
+        table = bfsFrom(graph, tileId);
+        lazyTables.set(tileId, table);
+    }
+    return table;
+};
+
 /**
  * Lazy getter for the cache. Callers must not reorder or mutate the returned
  * structures: genomes in both EAs are positionally coupled to `spawnerIds`.
@@ -66,4 +91,4 @@ const getSpawnerDistances = () => {
     return { spawnerIds, spawnerIndex, distFrom, maxDist };
 };
 
-export { getSpawnerDistances, bfsFrom };
+export { getSpawnerDistances, getDistanceTable, bfsFrom };

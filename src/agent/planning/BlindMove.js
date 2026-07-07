@@ -1,7 +1,7 @@
 import { Plan } from "./index.js";
 import dijkstra from 'graphology-shortest-path';
 import { client } from "../../config/index.js";
-import { beliefs, constantBeliefs, GO_TO, ERROR_CODES } from "../index.js";
+import { beliefs, constantBeliefs, GO_TO, ERROR_CODES, debugLog } from "../index.js";
 import { findBestPath, isTileFree, noteTeammateBlock, addTemporaryBlockedTile, clearOldBlockedTiles } from "./utilsPlanning.js";
 
 /**
@@ -38,7 +38,7 @@ class BlindMove extends Plan {
             // Initial path planning
             try {
                 path = await findBestPath({x: beliefs.me.x, y: beliefs.me.y}, {x, y}, true);
-                console.log("Initial path planned:", path);
+                debugLog("Initial path planned:", path);
             } catch (error) {
                 console.log("No path found to destination");
                 throw [ERROR_CODES.PATH_UNAVAILABLE, 'no path available'];

@@ -1,4 +1,4 @@
-import { distance } from "../index.js";
+import { distance, DEBUG } from "../index.js";
 import { beliefs, constantBeliefs } from "./index.js";
 
 /**
@@ -32,14 +32,17 @@ const updateInfoOtherAgents = (agents) => {
         
         beliefs.otherAgents.set( a.id, log);
 
-        // compute if within perceiving area
-        let prettyPrint = Array.from(beliefs.otherAgents.values()).map( (log) => {
-            const {timestamp,name,x,y,direction} = log;
-            const distance_from_me = distance( beliefs.me, {x,y} );
-            return `${name}(${direction},${ distance_from_me < constantBeliefs.config.AOD})@${timestamp}:${x},${y}`;
-        }).join(' ');
-        
-        console.log("Other agents: ", prettyPrint);
+        // compute if within perceiving area (debug only: this formats a long
+        // string AND runs a distance() per agent, purely for the log line)
+        if (DEBUG) {
+            let prettyPrint = Array.from(beliefs.otherAgents.values()).map( (log) => {
+                const {timestamp,name,x,y,direction} = log;
+                const distance_from_me = distance( beliefs.me, {x,y} );
+                return `${name}(${direction},${ distance_from_me < constantBeliefs.config.AOD})@${timestamp}:${x},${y}`;
+            }).join(' ');
+
+            console.log("Other agents: ", prettyPrint);
+        }
     }
 }
 

@@ -1,4 +1,4 @@
-import {beliefs, constantBeliefs, findNearestDeliverySpot, findFurthestParcelSpawner, GO_TO, GO_DELIVER, GO_PICK_UP, isIntentionAlreadyQueued, distance, getRewardAtDestination, getIntentionKey } from "../index.js"
+import {beliefs, constantBeliefs, findNearestDeliverySpot, findFurthestParcelSpawner, GO_TO, GO_DELIVER, GO_PICK_UP, isIntentionAlreadyQueued, distance, getRewardAtDestination, getIntentionKey, debugLog } from "../index.js"
 import { isClaimedByTeammate } from "../coordination/index.js";
 import { nextPatrolStops, advanceCursor } from "./tourEA.js";
 import { newAgent } from "../../autonomousRider.js";
@@ -233,7 +233,7 @@ async function optionsGeneration() {
  */
 const findBestOption = (options, agent) => {
 
-    console.log("Finding best option between: ", options);
+    debugLog("Finding best option between: ", options);
     let best_option;
     let best_reward = Number.MIN_SAFE_INTEGER;
 
@@ -246,14 +246,14 @@ const findBestOption = (options, agent) => {
             option_reward = 1;
         }
 
-        console.log("Option:", option, "Reward:", option_reward);
+        debugLog("Option:", option, "Reward:", option_reward);
         if (option_reward >= best_reward) {
             best_reward = option_reward;
             best_option = option;
         }
     }
 
-    console.log("Best option found:", best_option, "with reward:", best_reward);
+    debugLog("Best option found:", best_option, "with reward:", best_reward);
 
     return best_option;
 };
@@ -287,7 +287,7 @@ const calculateRiskPenalty = (position) => {
  */
 const calculateScore = (predicate, agent_pos, failures = undefined) => {
 
-    console.log("Calculating score for predicate: ", predicate);
+    debugLog("Calculating score for predicate: ", predicate);
 
     let score = 0;
 

@@ -1,4 +1,5 @@
 import { beliefs } from "./index.js"
+import { debugLog } from "../utils.js"
 
 /**
  * Update the main info about the agent 
@@ -9,7 +10,7 @@ const updateInfoAgent = ({id, name, x, y, score}) => {
     if ( x % 1 != 0 || y % 1 != 0 ) // skip intermediate values (0.6 or 0.4)
         return false;
 
-    console.log("Updating info about me (%s)...", name)
+    debugLog("Updating info about me (%s)...", name)
 
     beliefs.me.id = id
     beliefs.me.name = name

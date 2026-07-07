@@ -1,4 +1,4 @@
-import { beliefs, constantBeliefs, Intention, GO_TO, GO_DELIVER, GO_PICK_UP, calculateScore, optionsGeneration, getIntentionKey, QUEUE_SWAP_STOP_CODE, RETRYABLE_ERROR_CODES, getErrorCode, getErrorStopCode, isInterruptionError } from "../index.js";
+import { beliefs, constantBeliefs, Intention, GO_TO, GO_DELIVER, GO_PICK_UP, calculateScore, optionsGeneration, getIntentionKey, QUEUE_SWAP_STOP_CODE, RETRYABLE_ERROR_CODES, getErrorCode, getErrorStopCode, isInterruptionError, debugLog } from "../index.js";
 import { announceClaim, releaseClaim } from "../coordination/index.js";
 
 /**
@@ -76,7 +76,7 @@ class IntentionRevision {
             console.log("Added intention to empty queue:", new_intention.predicate);
         }
 
-        console.log("CURRENT QUEUE:", this.intention_queue.map(intention => intention?.predicate || 'undefined'));
+        debugLog("CURRENT QUEUE:", this.intention_queue.map(intention => intention?.predicate || 'undefined'));
     }
 
     /**
@@ -126,7 +126,7 @@ class IntentionRevision {
      */
     intentionComparison(intention1, intention2) {
         if (getIntentionKey(intention1.predicate) === getIntentionKey(intention2.predicate)) {
-            console.log(`Intention comparison: Same intention, no swap needed`);
+            debugLog(`Intention comparison: Same intention, no swap needed`);
             return false; // Same intention, no swap needed
         }
 
@@ -154,7 +154,7 @@ class IntentionRevision {
         const SWAP_MARGIN = 1.10;
         const threshold = score1 > 0 ? score1 * SWAP_MARGIN : score1;
 
-        console.log(`Intention comparison: score1=${score1}, score2=${score2}, threshold=${threshold}`);
+        debugLog(`Intention comparison: score1=${score1}, score2=${score2}, threshold=${threshold}`);
 
         return score2 > threshold;
     }
@@ -192,7 +192,7 @@ class IntentionRevision {
             }
 
             if (this.intention_queue.length > 0) {
-                console.log("IntentionRevision.loop", this.intention_queue.map(i => i?.predicate || 'undefined'));
+                debugLog("IntentionRevision.loop", this.intention_queue.map(i => i?.predicate || 'undefined'));
                 
                 const intention = this.intention_queue[0];
                 if (!intention) {
