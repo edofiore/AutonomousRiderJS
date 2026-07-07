@@ -2,7 +2,7 @@ import { Plan } from "./index.js";
 import dijkstra from 'graphology-shortest-path';
 import { client } from "../../config/index.js";
 import { beliefs, constantBeliefs, GO_TO, ERROR_CODES, debugLog } from "../index.js";
-import { findBestPath, isTileFree, noteTeammateBlock, addTemporaryBlockedTile, clearOldBlockedTiles } from "./utilsPlanning.js";
+import { findBestPath, isTileFree, noteTeammateBlock, isTeammateAt, addTemporaryBlockedTile, clearOldBlockedTiles } from "./utilsPlanning.js";
 
 /**
  * Optional move-tracing instrumentation. Enable with `DEBUG_MOVE=1`.
@@ -15,6 +15,10 @@ const trace = TRACE
     ? (...parts) => process.stdout.write(`[TRACE t=${Date.now()}] ${parts.join(' ')}\n`)
     : () => {};
 let moveSeq = 0;
+
+// Rate-limit teammate give-way so the yielding agent doesn't thrash
+// (module-level: shared across BlindMove instances = one agent).
+let lastGaveWayAt = 0;
 
 class BlindMove extends Plan {
 
@@ -58,6 +62,29 @@ class BlindMove extends Plan {
                 if (!isTileFree(nextCoordinates)) {
                     console.log(`Tile ${nextCoordinates} is blocked. Attempting to replan...`);
                     noteTeammateBlock(nextCoordinates);
+
+                    // Teammate give-way: when the blocker is our teammate and
+                    // we are the yielding agent (deterministic by id, so
+                    // exactly one of the two yields), step aside to break a
+                    // head-on crossing deadlock — otherwise both agents replan
+                    // into each other's tiles forever (observed livelock).
+                    if (isTeammateAt(nextCoordinates)
+                        && beliefs.me.id < beliefs.teammate.id
+                        && Date.now() - lastGaveWayAt > constantBeliefs.config.MOVEMENT_DURATION * 4) {
+                        lastGaveWayAt = Date.now();
+                        console.log("[TEAM] Giving way to teammate (crossing deadlock)");
+                        await this.giveWayToTeammate();
+                        if (this.stopped) throw [ERROR_CODES.STOPPED];
+                        // Replan from wherever we stepped to.
+                        try {
+                            path = await findBestPath({ x: beliefs.me.x, y: beliefs.me.y }, { x, y });
+                            i = -1;
+                            continue;
+                        } catch (e) {
+                            // No path from the new spot: fall through to the
+                            // normal blocked-tile handling below.
+                        }
+                    }
 
                     // Add the blocked tile to temporary blocked tiles
                     addTemporaryBlockedTile(nextDest);
@@ -209,6 +236,44 @@ class BlindMove extends Plan {
         if (this.stopped) throw [ERROR_CODES.STOPPED];
 
         return true;
+    }
+
+    /**
+     * Step aside to let the teammate pass, then pause so they can move
+     * through the tile we vacated. Picks the free neighbour of our current
+     * tile that is farthest from the teammate (best clears the way) and is
+     * not the teammate's own tile. If we're boxed in with nowhere to step,
+     * just wait a beat. Only the yielding agent (lower id) ever calls this.
+     */
+    async giveWayToTeammate() {
+        const pause = constantBeliefs.config.MOVEMENT_DURATION * 2;
+        const mate = beliefs.teammate.id ? beliefs.otherAgents.get(beliefs.teammate.id) : null;
+        const myTile = `${Math.floor(beliefs.me.x)}-${Math.floor(beliefs.me.y)}`;
+
+        let best = null, bestDist = -Infinity;
+        for (const nb of constantBeliefs.map.mapGraph.neighbors(myTile)) {
+            const [nx, ny] = nb.split('-').map(Number);
+            if (mate && Math.floor(mate.x) === nx && Math.floor(mate.y) === ny) continue;
+            if (!isTileFree([nx, ny])) continue;
+            const d = mate ? Math.abs(nx - mate.x) + Math.abs(ny - mate.y) : 0;
+            if (d > bestDist) { bestDist = d; best = { x: nx, y: ny }; }
+        }
+
+        if (!best) {
+            // Boxed: nothing to do but wait and hope the teammate reroutes.
+            await new Promise(r => setTimeout(r, pause));
+            return;
+        }
+
+        let dir = null;
+        if (best.x > beliefs.me.x) dir = 'right';
+        else if (best.x < beliefs.me.x) dir = 'left';
+        else if (best.y > beliefs.me.y) dir = 'up';
+        else if (best.y < beliefs.me.y) dir = 'down';
+        if (dir) await client.emitMove(dir);
+
+        // Give the teammate time to move through the tile we just vacated.
+        await new Promise(r => setTimeout(r, pause));
     }
 
     /**

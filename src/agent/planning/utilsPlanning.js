@@ -216,6 +216,19 @@ const noteTeammateBlock = (nextCoordinates) => {
 };
 
 /**
+ * Is `coords` currently occupied by our TEAMMATE (fresh sighting)?
+ * @param {[number, number]} coords
+ * @returns {boolean}
+ */
+const isTeammateAt = (coords) => {
+    if (!beliefs.teammate?.id) return false;
+    const mate = beliefs.otherAgents.get(beliefs.teammate.id);
+    if (!mate) return false;
+    if (Date.now() - mate.timestamp > constantBeliefs.config.MOVEMENT_DURATION * 4) return false;
+    return Math.floor(mate.x) === coords[0] && Math.floor(mate.y) === coords[1];
+};
+
+/**
  * Check if a tile is free (not occupied by other agents)
  * @param {[number, number]} nextCoordinates
  * @returns {boolean}
@@ -329,6 +342,7 @@ export {
     findSafestPath,
     isTileFree,
     noteTeammateBlock,
+    isTeammateAt,
     addTemporaryBlockedTile,
     clearOldBlockedTiles,
     isTileTemporarilyBlocked,
