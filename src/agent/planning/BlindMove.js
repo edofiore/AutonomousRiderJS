@@ -1,5 +1,4 @@
 import { Plan } from "./index.js";
-import dijkstra from 'graphology-shortest-path';
 import { client } from "../../config/index.js";
 import { beliefs, constantBeliefs, GO_TO, ERROR_CODES, debugLog } from "../index.js";
 import { findBestPath, isTileFree, noteTeammateBlock, isTeammateAt, addTemporaryBlockedTile, clearOldBlockedTiles } from "./utilsPlanning.js";

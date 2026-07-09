@@ -672,4 +672,5 @@ export {
     releaseClaim,
     isClaimedByTeammate,
     hasTeammate,
+    suppressDonatedParcels
 };

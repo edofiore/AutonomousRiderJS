@@ -6,16 +6,11 @@ const config = {
     // host: "https://deliveroojs25.azurewebsites.net/",
     // host: "https://deliveroojs.azurewebsites.net/",
 
-    // edo - localhost
-    // token: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjA4NWZiZiIsIm5hbWUiOiJlZG8iLCJyb2xlIjoidXNlciIsImlhdCI6MTc0Nzg0NzU3NX0.sk9xzx3XvVgYxYM4sihRIrryYVOL8q45-WC9o_eKFZQ'
+    // agent 1
+    token: process.env.DELIVEROO_TOKEN ?? 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjE2NjYyYSIsIm5hbWUiOiJhZ2VudDEiLCJyb2xlIjoidXNlciIsImlhdCI6MTc4MzU4ODkwMX0.s3pshToHp7lWRKDflzpJhZtsQDflSPDmmz5ezb18q5E',
 
-    // name: edo
-    // token: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjE5ODA2ZiIsIm5hbWUiOiJlZG8iLCJ0ZWFtSWQiOiJjOGMzMTciLCJ0ZWFtTmFtZSI6ImVkby1sZW8iLCJyb2xlIjoidXNlciIsImlhdCI6MTc0NTkyMTQ5M30.d1djDI98CpBDlOhowwWgB96ERLR5xZWkHCZ_hlbmePE'
-    
-    // name: leo
-    // token: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjA2MDQ1NiIsIm5hbWUiOiJsZW8iLCJ0ZWFtSWQiOiI3OGM3YjQiLCJ0ZWFtTmFtZSI6ImVkby1sZW8iLCJyb2xlIjoidXNlciIsImlhdCI6MTc0NzA2MDkxOH0.dDwkuVMQ2IXyFB15otsCRxYpaiCWx6J-PhG5MvtJnXk'
-    // token: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6ImI1NjA3MCIsIm5hbWUiOiJsZW8iLCJyb2xlIjoidXNlciIsImlhdCI6MTc3MTQzNzA0M30.wKI7xGQMcLATYCfumIGJDPWuohYoL6pEzI1HDsa3Wcs'
-    token: process.env.DELIVEROO_TOKEN ?? 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6ImY2ZTE3YSIsIm5hbWUiOiJsZW8iLCJ0ZWFtSWQiOiIwNmVlZWUiLCJ0ZWFtTmFtZSI6ImVkb2xlbyIsInJvbGUiOiJ1c2VyIiwiaWF0IjoxNzc0MzY5Njc0fQ.FAKV0TvqwNVQyBPInFqvnNNbJJU2ZGPsBtz_4lgmzfg',
+    // agent 2
+    // token: process.env.DELIVEROO_TOKEN ?? 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6ImQyZWNkZiIsIm5hbWUiOiJhZ2VudDIiLCJyb2xlIjoidXNlciIsImlhdCI6MTc4MzU4ODkxOH0.SmmEIeYR87sXzAqFzwVJqAoEHxuV0-e2pG4DGGlcdAA',
 
     // Multi-agent (Part 2) team coordination.
     team: {
@@ -25,6 +20,10 @@ const config = {
         // Shared secret both teammates use to recognise each other over the
         // (globally broadcast) Deliveroo message bus. Both agents must share it.
         secret: process.env.TEAM_SECRET ?? 'edoleo-team-secret',
+    },
+    // PDDL Planner configuration (Part 3)
+    pddl: {
+        enabled: (process.env.PDDL ?? '1') !== '0',
     }
 }
 
