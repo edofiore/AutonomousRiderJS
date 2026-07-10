@@ -8,6 +8,7 @@ const updatePerceivedParcels = async ( perceivedParcels ) => {
     
     let current_carried_parcels = 0;
     let current_carried_reward = 0;
+    const current_carried_ids = [];
 
     const now = Date.now();
 
@@ -35,12 +36,14 @@ const updatePerceivedParcels = async ( perceivedParcels ) => {
             if ( p.carriedBy == beliefs.me.id ) {
                 current_carried_parcels += 1;
                 current_carried_reward += p.reward;
+                current_carried_ids.push(p.id);
             }
         }
     }
 
     beliefs.me.carried_parcels_count = current_carried_parcels;
     beliefs.me.total_carried_reward = current_carried_reward;
+    beliefs.me.carried_parcel_ids = current_carried_ids;
     
     // Remove parcels that are no more perceived
     for ( const parcel_data of beliefs.storedParcels.values() ) {

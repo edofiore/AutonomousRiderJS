@@ -24,6 +24,13 @@ const config = {
     // PDDL Planner configuration (Part 3)
     pddl: {
         enabled: (process.env.PDDL ?? '1') !== '0',
+        // Client-side cap on the online-solver round trip. The backend allows
+        // up to 30s per solve — far too long for an agent to stand still.
+        timeoutMs: parseInt(process.env.PDDL_TIMEOUT_MS ?? '5000', 10),
+        // After this many consecutive transport failures (solver unreachable
+        // or timed out) PDDL is disabled for the rest of the session, so
+        // offline play doesn't eat a network timeout on every intention.
+        maxConsecutiveFailures: parseInt(process.env.PDDL_MAX_FAILURES ?? '3', 10),
     }
 }
 

@@ -11,6 +11,7 @@ const beliefs = {
         y: null, 
         score: null,    // Total score of the agent
         carried_parcels_count: null,    // Number of parcels the agent is carrying
+        carried_parcel_ids: [],         // Ids of the parcels the agent is carrying
         total_carried_reward: null     // Total reward the agent is carrying
     },
     storedParcels: new Map(), // Map of < parcelId, {{ id, x, y, carriedBy, reward }, timestamp, visible } >
