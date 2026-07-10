@@ -299,12 +299,25 @@ const calculateScore = (predicate, agent_pos, failures = undefined) => {
         const parcel = beliefs.storedParcels.get(predicate[3])?.parcel;
         if (parcel) {
 
-            let target_reward_at_pickup = getRewardAtDestination(parcel.reward, agent_pos, target_pos);
+            // Pickup collects EVERY parcel on the tile, so score them all
+            // together: sum their rewards and count each one toward the
+            // per-parcel decay after pickup.
+            let tile_reward = 0;
+            let tile_parcels_count = 0;
+            for (const { parcel: p } of beliefs.storedParcels.values()) {
+                if (Math.floor(p.x) === Math.floor(parcel.x) && Math.floor(p.y) === Math.floor(parcel.y)
+                    && (p.id === parcel.id || (!p.carriedBy && p.reward > 0))) {
+                    tile_reward += p.reward;
+                    tile_parcels_count++;
+                }
+            }
+
+            let target_reward_at_pickup = getRewardAtDestination(tile_reward, agent_pos, target_pos, tile_parcels_count);
             let carried_reward_at_pickup = getRewardAtDestination(beliefs.me.total_carried_reward, agent_pos, target_pos, beliefs.me.carried_parcels_count);
             let total_reward_at_pickup = target_reward_at_pickup + carried_reward_at_pickup;
 
             let nearest_delivery_from_parcel = findNearestDeliverySpot(target_pos);
-            let total_reward_at_delivery = getRewardAtDestination(total_reward_at_pickup, target_pos, nearest_delivery_from_parcel, beliefs.me.carried_parcels_count + 1);
+            let total_reward_at_delivery = getRewardAtDestination(total_reward_at_pickup, target_pos, nearest_delivery_from_parcel, beliefs.me.carried_parcels_count + tile_parcels_count);
 
             // Part 2: soft own-zone preference. Both agents rank the (shared)
             // global parcel list with this same formula, so without a bias
