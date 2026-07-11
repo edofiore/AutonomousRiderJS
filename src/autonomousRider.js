@@ -1,7 +1,9 @@
+import 'dotenv/config';
 import { updateInfoOtherAgents } from "./agent/beliefs/otherAgents.js";
 import { Agent, getMapConfig, processMapData, updateInfoAgent, updatePerceivedParcels, optionsGeneration } from "./agent/index.js";
 import { initCoordination, shareBeliefs } from "./agent/coordination/index.js";
 import { client } from "./config/index.js";
+import "./agent/benchmark/metrics.js"; // benchmark instrumentation (METRIC log lines)
     
 console.log("Start...")
 

@@ -6,6 +6,7 @@ import { suppressDonatedParcels } from "../coordination/coordination.js";
 import { buildMessage, MSG } from "../coordination/messages.js";
 import { client } from "../../config/index.js";
 import config from "../../config/config.js";
+import { metricPddlSolve, metricPddlCircuitBreaker } from "../benchmark/metrics.js";
 
 const DELIVEROO_DOMAIN = `
 (define (domain deliveroo)
@@ -155,18 +156,23 @@ export class PddlPlan extends Plan {
         const { problem, goalParcelIds } = this.generateProblem(action, x, y, id);
 
         let planSteps;
+        const solveStart = Date.now();
         try {
             console.log(`[PDDL] Invoking online solver...`);
             planSteps = await solveWithTimeout(DELIVEROO_DOMAIN, problem);
             consecutiveSolverFailures = 0;
         } catch (e) {
             consecutiveSolverFailures++;
+            metricPddlSolve({ ok: false, ms: Date.now() - solveStart, error: e });
             console.error(`[PDDL] Solver failed (${consecutiveSolverFailures}/${config.pddl.maxConsecutiveFailures} consecutive):`, e);
             if (consecutiveSolverFailures >= config.pddl.maxConsecutiveFailures) {
+                metricPddlCircuitBreaker();
                 console.error(`[PDDL] Circuit breaker tripped: PDDL planning disabled for the rest of the session.`);
             }
             throw [ERROR_CODES.NO_PLAN, e];
         }
+
+        metricPddlSolve({ ok: true, ms: Date.now() - solveStart, steps: planSteps?.length ?? 0 });
 
         if (!planSteps || planSteps.length === 0) {
             console.log(`[PDDL] Solver returned no plan.`);

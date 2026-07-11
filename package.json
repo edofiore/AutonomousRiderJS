@@ -7,9 +7,11 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "start": "node src/autonomousRider.js",
-    "agent1": "TEAM=1 node src/autonomousRider.js -name=A1",
-    "agent2": "TEAM=1 node src/autonomousRider.js -name=A2",
-    "team": "TEAM=1 node src/autonomousRider.js"
+    "agent1": "node src/autonomousRider.js -name=A1 -team=1",
+    "agent2": "node src/autonomousRider.js -name=A2 -team=1",
+    "team": "node src/autonomousRider.js -team=1",
+    "bench": "node benchmark/run-benchmark.js",
+    "bench:parse": "node benchmark/parse-logs.js"
   },
   "repository": {
     "type": "git",
@@ -23,6 +25,7 @@
   "dependencies": {
     "@unitn-asa/deliveroo-js-client": "^2.0.2",
     "@unitn-asa/pddl-client": "^0.0.37",
+    "dotenv": "^17.4.2",
     "graphology": "^0.25.4",
     "graphology-shortest-path": "^2.1.0",
     "node-fetch": "^3.3.0",

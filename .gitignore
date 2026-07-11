@@ -18,3 +18,7 @@ src/config/config.js
 
 # dotenv local environment variables file
 .env.local
+.env
+
+# Benchmark outputs (logs, manifests, CSV tables)
+benchmark/logs/

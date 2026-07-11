@@ -5,6 +5,7 @@
 import { beliefs } from "../beliefs/beliefs.js";
 import { planLibrary } from "../planning/index.js";
 import { GO_DELIVER, GO_PICK_UP, DEFAULT_STOP_CODE, ERROR_CODES, debugLog } from "../utils.js";
+import { metricPlanResult } from "../benchmark/metrics.js";
 
 class Intention {
     // Plan currently used for achieving the intention
@@ -116,11 +117,13 @@ class Intention {
                 // Plan is executed and result is returned
                 try {
                     const plan_res = await this.#current_plan.execute(...this.#predicate);
+                    metricPlanResult(planClass.name, this.predicate[0], true);
                     this.log('Succesfull intention', ...this.predicate, 'with plan', planClass.name, 'with result', plan_res);
                     return plan_res;
 
                 // Errors are caught so to continue with next plan
                 } catch (error) {
+                    metricPlanResult(planClass.name, this.predicate[0], false, error);
                     this.log('Failed intention', ...this.predicate, 'with plan', planClass.name, 'with error:', error);
                 }
             }

@@ -1,5 +1,6 @@
 import { beliefs, constantBeliefs, Intention, GO_TO, GO_DELIVER, GO_PICK_UP, calculateScore, optionsGeneration, getIntentionKey, QUEUE_SWAP_STOP_CODE, RETRYABLE_ERROR_CODES, getErrorCode, getErrorStopCode, isInterruptionError, debugLog } from "../index.js";
 import { announceClaim, releaseClaim } from "../coordination/index.js";
+import { metricIntentionCompleted, metricIntentionFailure } from "../benchmark/metrics.js";
 
 /**
  * Unified IntentionRevision class for BDI architecture
@@ -37,7 +38,8 @@ class IntentionRevision {
         
         this.#failureCount.set(intentionKey, currentFailures + 1);
         this.#lastFailureTime.set(intentionKey, Date.now());
-        
+        metricIntentionFailure(intentionKey, error);
+
         console.log(`Recorded failure for ${intentionKey}: ${currentFailures + 1} total failures`);
         console.log(`Failure reason: `, error);
 
@@ -226,6 +228,7 @@ class IntentionRevision {
                 // Execute intention with enhanced error handling
                 try {
                     await intention.achieve();
+                    metricIntentionCompleted(intention.predicate[0]);
                     console.log('Successfully completed intention:', intention.predicate);
                 } catch (error) {
                     console.log('Failed intention:', intention.predicate, 'Error:', error);
