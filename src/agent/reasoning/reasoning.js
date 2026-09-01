@@ -1,4 +1,4 @@
-import {beliefs, constantBeliefs, findNearestDeliverySpot, findFurthestParcelSpawner, GO_TO, GO_DELIVER, GO_PICK_UP, isIntentionAlreadyQueued, distance, getRewardAtDestination, getIntentionKey, debugLog } from "../index.js"
+import {beliefs, constantBeliefs, findNearestDeliverySpot, findFurthestParcelSpawner, GO_TO, GO_DELIVER, GO_PICK_UP, isIntentionAlreadyQueued, distance, getRewardAtDestination, getIntentionKey, INVALID_STOP_CODE, debugLog } from "../index.js"
 import { isClaimedByTeammate } from "../coordination/index.js";
 import { nextPatrolStops, advanceCursor } from "./tourEA.js";
 import { newAgent } from "../../autonomousRider.js";
@@ -34,7 +34,7 @@ async function optionsGeneration() {
     const head = intention_queue[0];
     if (head && !head.stopped && !head.isStillValid()) {
         console.log("Head intention no longer valid, stopping it:", head.predicate);
-        head.stop();
+        head.stop(INVALID_STOP_CODE);
     }
 
     // Fresh teammate sighting, used by several filters below.

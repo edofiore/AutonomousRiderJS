@@ -4,7 +4,7 @@
 
 import { beliefs } from "../beliefs/beliefs.js";
 import { planLibrary } from "../planning/index.js";
-import { GO_DELIVER, GO_PICK_UP, DEFAULT_STOP_CODE, ERROR_CODES, debugLog } from "../utils.js";
+import { GO_DELIVER, GO_PICK_UP, DEFAULT_STOP_CODE, ERROR_CODES, describeStopCode, debugLog } from "../utils.js";
 import { metricPlanResult } from "../benchmark/metrics.js";
 
 class Intention {
@@ -17,10 +17,10 @@ class Intention {
         return this.#stopped;
     }
     async stop (stopCode) {
-        this.log( 'stop intention', ...this.#predicate, 'with error code', stopCode);
         this.#stopped = stopCode || DEFAULT_STOP_CODE;
+        this.log( 'stop intention', ...this.#predicate, 'with stop code', describeStopCode(this.#stopped));
         if (this.#current_plan)
-            await this.#current_plan.stop(stopCode);
+            await this.#current_plan.stop(this.#stopped);
     }
 
     /**

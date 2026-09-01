@@ -20,6 +20,27 @@ const WALKABLE_TILES = 3;   // '3' are walkable non-spawning tiles
 
 const DEFAULT_STOP_CODE = -1; // Default code for stopped intentions
 const QUEUE_SWAP_STOP_CODE = -2; // Special code for intentions stopped due to queue swapping (to avoid counting them as failures in intention revision)
+const INVALID_STOP_CODE = -3; // Head intention stopped because its target became invalid mid-execution
+
+// Human readable names for the stop codes, so the logs say *why* something was
+// stopped instead of printing a bare (or undefined) number.
+const STOP_CODE_LABELS = Object.freeze({
+    [DEFAULT_STOP_CODE]: 'unspecified',
+    [QUEUE_SWAP_STOP_CODE]: 'queue swap',
+    [INVALID_STOP_CODE]: 'intention invalidated'
+});
+
+/**
+ * Format a stop code for logging: `stop()` may be called without an argument,
+ * in which case the effective code is DEFAULT_STOP_CODE — logging the raw
+ * argument printed `undefined`.
+ * @param {number|undefined} code - The raw stop code passed to stop()
+ * @returns {string} e.g. "queue swap (-2)"
+ */
+const describeStopCode = (code) => {
+    const resolved = code || DEFAULT_STOP_CODE;
+    return `${STOP_CODE_LABELS[resolved] || 'unknown'} (${resolved})`;
+}
 
 // Canonical error codes used across plans/intention-revision.
 const ERROR_CODES = Object.freeze({
@@ -153,7 +174,7 @@ const isIntentionAlreadyQueued = (intention_queue, intentionKey) =>{
 
 export {
     GO_TO, GO_PICK_UP, GO_DELIVER, BLOCKED_TILES, WALKABLE_SPAWNING_TILES, DELIVERABLE_TILES, WALKABLE_TILES,
-    DEFAULT_STOP_CODE, QUEUE_SWAP_STOP_CODE,
+    DEFAULT_STOP_CODE, QUEUE_SWAP_STOP_CODE, INVALID_STOP_CODE, STOP_CODE_LABELS, describeStopCode,
     ERROR_CODES,
     RETRYABLE_ERROR_CODES, getErrorCode, getErrorStopCode, isInterruptionError,
     DEBUG, debugLog,
