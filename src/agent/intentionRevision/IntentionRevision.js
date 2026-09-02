@@ -11,6 +11,8 @@ class IntentionRevision {
     #failureCount = new Map(); // Track failure count per intention type <intentionKey, count>
     #lastFailureTime = new Map(); // Track when intentions last failed <intentionKey, timestamp>
 
+    static FAILURE_DECAY_INTERVAL = 10000;
+
     get intention_queue() {
         return this.#intention_queue;
     }
@@ -29,12 +31,36 @@ class IntentionRevision {
     }
 
     /**
+     * Failure count for an intention key, decayed by time: one recorded
+     * failure is forgotten per FAILURE_DECAY_INTERVAL elapsed since the last
+     * one, so an intention that stops failing is eventually forgiven instead
+     * of carrying a permanent penalty for the rest of the session.
+     * @param {string} intentionKey
+     * @returns {number} the effective failure count (>= 0)
+     */
+    failuresFor(intentionKey) {
+        const recorded = this.#failureCount.get(intentionKey);
+        if (!recorded) return 0;
+
+        const last = this.#lastFailureTime.get(intentionKey) ?? 0;
+        const forgiven = Math.floor((Date.now() - last) / IntentionRevision.FAILURE_DECAY_INTERVAL);
+        const effective = recorded - forgiven;
+
+        if (effective <= 0) { // fully forgiven: stop tracking it at all
+            this.#failureCount.delete(intentionKey);
+            this.#lastFailureTime.delete(intentionKey);
+            return 0;
+        }
+        return effective;
+    }
+
+    /**
      * Record an intention failure for tracking
      * @param {string} intentionKey - The failed intention key
      * @param {*} error - The error that occurred
      */
     recordIntentionFailure(intentionKey, error) {
-        const currentFailures = this.#failureCount.get(intentionKey) || 0;
+        const currentFailures = this.failuresFor(intentionKey);
         
         this.#failureCount.set(intentionKey, currentFailures + 1);
         this.#lastFailureTime.set(intentionKey, Date.now());
@@ -43,7 +69,7 @@ class IntentionRevision {
         console.log(`Recorded failure for ${intentionKey}: ${currentFailures + 1} total failures`);
         console.log(`Failure reason: `, error);
 
-        if(this.#failureCount.get(intentionKey) >= 5) {
+        if(this.failuresFor(intentionKey) >= 5) {
             console.log(`Intention ${intentionKey} has failed 5 or more times. Marking as invalid for 10 seconds.`);
             beliefs.invalidOptions.set(intentionKey, Date.now());
         }
@@ -137,12 +163,12 @@ class IntentionRevision {
         const score1 = calculateScore(
             intention1.predicate,
             agent_pos,
-            this.#failureCount.get(getIntentionKey(intention1.predicate)) || 0
+            this.failuresFor(getIntentionKey(intention1.predicate))
         );
         const score2 = calculateScore(
             intention2.predicate,
             agent_pos,
-            this.#failureCount.get(getIntentionKey(intention2.predicate)) || 0
+            this.failuresFor(getIntentionKey(intention2.predicate))
         );
 
         // Hysteresis: require the challenger to beat the incumbent by a
@@ -171,7 +197,7 @@ class IntentionRevision {
         const errorCode = getErrorCode(error);
         if (!errorCode) return false;
 
-        const failures = this.#failureCount.get(intentionKey) || 0;
+        const failures = this.failuresFor(intentionKey);
         
         // Don't retry if too many failures
         if (failures >= 5) return false;
@@ -248,6 +274,10 @@ class IntentionRevision {
                         await new Promise(resolve => 
                             setTimeout(resolve, constantBeliefs.config.MOVEMENT_DURATION)
                         );
+                        const retryIdx = this.intention_queue.indexOf(intention);
+                        if (retryIdx !== -1) {
+                            this.intention_queue[retryIdx] = new Intention(this, intention.predicate);
+                        }
                         continue; // Don't remove from queue, try again
                     }
                 }

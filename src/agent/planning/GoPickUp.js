@@ -96,7 +96,6 @@ class GoPickUp extends Plan {
         }
         console.log(`Successfully picked up main target parcel ${id}`);
 
-        if (this.stopped) throw [ERROR_CODES.STOPPED];
         return true;
     }
 

@@ -16,6 +16,13 @@ const OUT_OF_ZONE_DISCOUNT = 0.65;
 // discount, and only the farther agent applies it, so exactly one still goes.
 const TEAMMATE_PROXIMITY_DISCOUNT = 0.5;
 
+// How old an opponent sighting may be before it stops counting toward the
+// risk penalty. `beliefs.otherAgents` is an append-only log — entries are
+// never evicted — so without this a competitor seen once at the start of the
+// match would keep penalizing that region for the whole game. Matches the
+// freshness window already used for teammate sightings below.
+const OPPONENT_SIGHTING_FRESHNESS = 5000;
+
 // Keys we are currently yielding to the teammate. Used to log a yield only on
 // transition (first tick we start yielding a parcel), not on every options tick.
 let yieldedKeys = new Set();
@@ -268,9 +275,15 @@ const calculateRiskPenalty = (position) => {
 
     const distance_from_me = distance(position, { x: beliefs.me.x, y: beliefs.me.y });
 
+    const now = Date.now();
+
     for (const [id, opponent_log] of beliefs.otherAgents?.entries() ?? []) {
         // The teammate coordinates with us via claims; they're not a competitor.
         if (id === beliefs.teammate.id) continue;
+
+        // Stale sighting: the agent has long since moved on, so its last known
+        // position says nothing about who reaches this target first.
+        if (now - opponent_log.timestamp > OPPONENT_SIGHTING_FRESHNESS) continue;
 
         const opponent_distance = distance(position, { x: opponent_log.x, y: opponent_log.y });
         // Only consider agents that are closer to the target than me and within a certain range
@@ -355,7 +368,12 @@ const calculateScore = (predicate, agent_pos, failures = undefined) => {
         let total_reward_at_delivery = getRewardAtDestination(beliefs.me.total_carried_reward, agent_pos, target_pos, beliefs.me.carried_parcels_count);
 
         score += total_reward_at_delivery;
-        failure_penalty_multiplier = total_reward_at_delivery / 3; // The penalty is proportional to the reward I'm going to lose if I fail to deliver
+        // The penalty is proportional to the reward I'm going to lose if I
+        // fail to deliver. Clamped at 0: once the cargo has decayed past the
+        // travel cost the reward goes negative, and a negative multiplier
+        // would turn `score -= failures * multiplier` into a BONUS — a
+        // delivery would get more attractive the more it failed.
+        failure_penalty_multiplier = Math.max(0, total_reward_at_delivery) / 3;
     }
 
     // Risk factor (penalize if area has many agents)

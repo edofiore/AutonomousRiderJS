@@ -51,6 +51,7 @@ const ERROR_CODES = Object.freeze({
     BAD_COORDINATES: 'bad coordinates',
     PARCEL_UNAVAILABLE: 'parcel unavailable',
     NOTHING_TO_DELIVER: 'nothing to deliver',
+    DELIVERY_FAILED: 'delivery failed',
     PATH_UNAVAILABLE: 'path unavailable',
     PATH_BLOCKED: 'path blocked',
     REPLANNING_FAILED: 'replanning failed',

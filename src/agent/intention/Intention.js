@@ -66,6 +66,8 @@ class Intention {
         debugLog(`Is intention ${action} ${x}-${y} still valid?`);
 
         if(action == GO_PICK_UP) {
+            if (beliefs.me?.carried_parcel_ids?.includes(p_id)) return true;
+
             let p = beliefs.storedParcels.get(p_id)?.parcel;
 
             if (!p || p.carriedBy || p.reward <= 0) {
