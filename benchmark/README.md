@@ -30,6 +30,13 @@ tables used in the report.
     both modes get the same number of games (consider `--runs 20` on this
     map to keep 10 samples per mode).
 - `parse-logs.js` reads all logs and writes the CSVs.
+- `report-tables.js` turns `results.csv` into the LaTeX tables used in the
+  report's validation section. It groups the maps into classes (planning-
+  problem size, parcel lifetime `PRA x PDI`, single-agent vs team
+  contention) read from the Deliveroo.js level files, so the PDDL/baseline
+  comparison is reported per kind of environment rather than pooled. The
+  derived figures quoted in the prose (correlations, dead time per
+  delivery, solver call counts) go to stderr.
 
 ## Usage
 
@@ -43,6 +50,9 @@ npm run bench -- --maps 25c1_1 --runs 1 --duration 60
 
 # then produce the CSVs
 npm run bench:parse
+
+# and the report's LaTeX tables (stdout, or --out file.tex)
+npm run bench:tables
 ```
 
 Options for `run-benchmark.js`: `--deliveroo <path to Deliveroo.js repo>`

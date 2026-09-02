@@ -11,7 +11,8 @@
     "agent2": "node src/autonomousRider.js -name=A2 -team=1",
     "team": "node src/autonomousRider.js -team=1",
     "bench": "node benchmark/run-benchmark.js",
-    "bench:parse": "node benchmark/parse-logs.js"
+    "bench:parse": "node benchmark/parse-logs.js",
+    "bench:tables": "node benchmark/report-tables.js"
   },
   "repository": {
     "type": "git",
