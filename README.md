@@ -31,14 +31,16 @@ its score. The project covers the three course deliverables:
    └──────────────────┬──────────────────────────────┘
                       ▼
         Options generation (reasoning/)
-   every option (pick up p / deliver / explore) gets a
-   utility score: reward at destination after decay,
-   distance (O(1) BFS tables), competition, failures
+   every pick-up / deliver option gets a utility score:
+   reward at destination after decay, distance (O(1) BFS
+   tables), competition, failures; when nothing is worth
+   doing the agent falls back to the next patrol stop
                       ▼
         Intention revision (intentionRevision/)
-   priority queue of intentions; a new option preempts the
-   current one only if it beats it by a 10% margin
-   (hysteresis); failed intentions are retried or banned
+   2-slot queue (running head + one backup); a new option
+   preempts the head only if it beats it by a 10% margin
+   (hysteresis); repeated failures suppress an option, and
+   the failure count decays again once it stops failing
                       ▼
         Plan library (planning/)
    PddlPlan → GoPickUp → BlindMove → GoDeliver
@@ -81,8 +83,8 @@ Start a Deliveroo server (in the Deliveroo.js repo):
 
 ```bash
 cd Deliveroo.js/backend
-PORT=4001 node index.js                          # default map
-# or with a level file:  LEVEL=levels/25c1_1.js PORT=4001 node index.js
+PORT=8080 node index.js                          # default map
+# or with a level file:  LEVEL=levels/25c1_1.js PORT=8080 node index.js
 ```
 
 ## Running the agent
@@ -106,7 +108,7 @@ precedence: **CLI args > environment variables > `.env` > defaults**.
 | --- | --- | --- | --- |
 | Agent name (fresh identity) | `-name=X` | — | token identity |
 | Auth token | — | `DELIVEROO_TOKEN` (`NEW` = force fresh identity) | built-in token |
-| Server URL | — | `DELIVEROO_HOST` | `http://localhost:4001` |
+| Server URL | — | `DELIVEROO_HOST` | `http://localhost:8080` |
 | Team mode | `-team=1` | `TEAM` | off |
 | Team secret | — | `TEAM_SECRET` | shared default |
 | PDDL planning | `-pddl=1` | `PDDL` | off |
@@ -129,23 +131,32 @@ single-file `25c2_hallway` corridor runs last with one alternating team per
 run), and a parser turns the logs into CSV tables.
 
 ```bash
-npm run bench          # full campaign: 10 maps x 10 runs x 3 min (resumable)
+npm run bench          # full campaign: 19 maps x 10 runs x 3 min (resumable, ~10 h)
 npm run bench:parse    # -> results.csv, summary.csv, summary_by_map.csv, timeseries.csv
+npm run bench:tables   # -> LaTeX tables for the report (stdout, or --out file.tex)
 ```
+
+The runner needs the Deliveroo.js repo to read level and map files; point it
+there with `--deliveroo <path>` or `DELIVEROO_DIR` if it is not a sibling of
+this one.
 
 ## Project layout
 
 ```
 src/
-  autonomousRider.js        entry point: sensing loop + initialization
-  config/                   host/token/team/PDDL configuration
+  autonomousRider.js        entry point: sensing hooks + initialization
+  config/                   host/token/team/PDDL configuration + API client
+  types/typedefs.js         JSDoc typedefs
   agent/
+    Agent.js                owns the intention-revision loop
+    utils.js                shared constants, error/stop codes, distance()
     beliefs/                me, parcels, other agents, map graph
     reasoning/              option generation + utility scoring, tour EA
-    intention/              Intention: plan selection & execution
-    intentionRevision/      queue, preemption with hysteresis, retries
+    intention/              Intention: validity check, plan selection
+    intentionRevision/      2-slot queue, hysteresis swaps, retries
     planning/               PddlPlan, GoPickUp, GoDeliver, BlindMove, paths
-    coordination/           team discovery, belief sharing, claims, handoffs
+    coordination/           team discovery, belief sharing, claims, handoffs,
+                            partition EA
     benchmark/metrics.js    METRIC instrumentation (see benchmark/)
-benchmark/                  testbench runner + log parser + docs
+benchmark/                  testbench runner + log parser + table generator
 ```

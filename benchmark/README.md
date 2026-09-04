@@ -41,7 +41,7 @@ tables used in the report.
 ## Usage
 
 ```bash
-# full campaign: 10 maps x 10 runs x 3 min  (~5.5 h; resumable, completed
+# full campaign: 19 maps x 10 runs x 3 min  (~10 h; resumable, completed
 # runs are skipped on re-launch)
 npm run bench
 
