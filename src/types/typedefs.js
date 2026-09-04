@@ -22,12 +22,6 @@
  */
 
 /**
- * TODO:
- * - add options/intentions type
- * - 
- */
-
-/**
  * @global
  * @typedef {Object} AgentInfo
  * @property {string} name - Agent name
@@ -48,6 +42,7 @@
  * @global
  * @typedef {Agent} MeAgent
  * @property {number} carried_parcels_count - Number of parcels the agent is carrying
+ * @property {string[]} carried_parcel_ids - Ids of the parcels the agent is carrying
  * @property {number} total_carried_reward - Total reward of carried parcels
  */
 

@@ -1,27 +1,40 @@
-// Import only the variables that never will change during the execution
+// Import constant beliefs and distance table helper
 import { beliefs, constantBeliefs } from './index.js';
 import { getDistanceTable } from './planning/spawnerDistances.js';
 
-// Debug logging: the per-tick reasoning chatter (score calculations, option
-// ranking, queue dumps) is invaluable when debugging but costs real time in
-// normal play — every line is formatted and written, thousands per minute.
-// Enable with DEBUG=1. Important events (pickups, deliveries, handoffs,
-// failures, [TEAM]/[EA]/[TOUR]) stay on plain console.log.
+// Debug logging (enable with DEBUG=1)
 const DEBUG = process.env.DEBUG === '1';
 const debugLog = (...args) => { if (DEBUG) console.log(...args); };
 
 const GO_TO = "go_to";
 const GO_PICK_UP = "go_pick_up";
 const GO_DELIVER = "go_deliver";
-const BLOCKED_TILES = 0;    // '0' are blocked tiles (empty or not_tile)
-const WALKABLE_SPAWNING_TILES = 1;  // '1' are walkable spawning tiles
-const DELIVERABLE_TILES = 2;    // '2' are delivery tiles
-const WALKABLE_TILES = 3;   // '3' are walkable non-spawning tiles
+const BLOCKED_TILES = 0;    // Blocked tiles (empty or not_tile)
+const WALKABLE_SPAWNING_TILES = 1;  // Walkable spawning tiles
+const DELIVERABLE_TILES = 2;    // Delivery tiles
+const WALKABLE_TILES = 3;   // Walkable non-spawning tiles
 
 const DEFAULT_STOP_CODE = -1; // Default code for stopped intentions
 const QUEUE_SWAP_STOP_CODE = -2; // Special code for intentions stopped due to queue swapping (to avoid counting them as failures in intention revision)
+const INVALID_STOP_CODE = -3; // Head intention stopped because its target became invalid mid-execution
 
-// Canonical error codes used across plans/intention-revision.
+const STOP_CODE_LABELS = Object.freeze({
+    [DEFAULT_STOP_CODE]: 'unspecified',
+    [QUEUE_SWAP_STOP_CODE]: 'queue swap',
+    [INVALID_STOP_CODE]: 'intention invalidated'
+});
+
+/**
+ * Format a stop code for logging
+ * @param {number|undefined} code
+ * @returns {string}
+ */
+const describeStopCode = (code) => {
+    const resolved = code || DEFAULT_STOP_CODE;
+    return `${STOP_CODE_LABELS[resolved] || 'unknown'} (${resolved})`;
+}
+
+// Canonical error codes used across plans and intention revision
 const ERROR_CODES = Object.freeze({
     STOPPED: 'stopped',
     INTENTION_STOPPED: 'stopped intention',
@@ -30,6 +43,7 @@ const ERROR_CODES = Object.freeze({
     BAD_COORDINATES: 'bad coordinates',
     PARCEL_UNAVAILABLE: 'parcel unavailable',
     NOTHING_TO_DELIVER: 'nothing to deliver',
+    DELIVERY_FAILED: 'delivery failed',
     PATH_UNAVAILABLE: 'path unavailable',
     PATH_BLOCKED: 'path blocked',
     REPLANNING_FAILED: 'replanning failed',
@@ -51,27 +65,22 @@ const isInterruptionError = (error) => {
 }
 
 /**
- * Function to compute the distance (number of cells/steps) between 2 cells
- * @param {{x:number, y:number}} current_pos - Current Position
- * @param {{x:number, y:number}} target_pos - Target Position
- * @returns {number} - The distance between two tiles
+ * Compute shortest distance between 2 positions using BFS distance table
+ * @param {{x:number, y:number}} current_pos
+ * @param {{x:number, y:number}} target_pos
+ * @returns {number}
  */
 const distance = ( current_pos, target_pos ) => {
     if(current_pos.x != undefined && current_pos.y != undefined && target_pos.x != undefined && target_pos.y != undefined) {
-        // O(1) lookup in a lazily-built BFS table keyed on the TARGET tile
-        // (targets — parcels, delivery spots, teammates — repeat constantly;
-        // the graph is undirected so from/to are interchangeable). This
-        // replaced a full Dijkstra per call: the scoring pipeline makes
-        // hundreds of distance() calls per options tick, which used to cost
-        // ~100 ms of event-loop time per tick and made the agents sluggish.
+        // O(1) lookup in precomputed BFS table
         const from = Math.floor(current_pos.x) + "-" + Math.floor(current_pos.y);
         const to = Math.floor(target_pos.x) + "-" + Math.floor(target_pos.y);
 
         const table = getDistanceTable(to);
-        if (!table) return Number.MAX_VALUE; // target isn't a walkable tile
+        if (!table) return Number.MAX_VALUE; // Target tile is not walkable
 
         const d = table.get(from);
-        return d === undefined ? Number.MAX_VALUE : d; // undefined: unreachable (different component)
+        return d === undefined ? Number.MAX_VALUE : d;
     } else {
         console.log('BAD_COORDS stack:', new Error().stack.split('\n').slice(1,6).join(' | '));
         throw [ERROR_CODES.BAD_COORDINATES, current_pos, target_pos];
@@ -79,9 +88,9 @@ const distance = ( current_pos, target_pos ) => {
 }
 
 /**
- * Find the nearest delivery zone
- * @param {{x:number, y:number}} current_pos - The current position of the agent (could be "me" or some "opponents agent")
- * @returns {{x:number, y:number}} - The nearest delivery zone
+ * Find the nearest delivery spot
+ * @param {{x:number, y:number}} current_pos
+ * @returns {{x:number, y:number}}
  */
 const findNearestDeliverySpot = (current_pos) => {
     let nearestDeliver = Number.MAX_VALUE;
@@ -94,14 +103,13 @@ const findNearestDeliverySpot = (current_pos) => {
         }
     }
 
-    return { x:best_spot[0], y:best_spot[1] }; // Return an object with x and y properties
+    return { x:best_spot[0], y:best_spot[1] };
 }
 
 /**
- * Find the farthest parcels spawner. 
- * It is useful when are not parcels perceived and the agent is not bring parcels, so he has to move around the map.
- * @param {{x:number, y:number}} agent - The current position of the agent (could be "me" or some "opponents agent")
- * @returns {{x:number, y:number}} - The farthest parcels spawner
+ * Find the farthest parcel spawner
+ * @param {{x:number, y:number}} agent
+ * @returns {{x:number, y:number}}
  */
 const findFurthestParcelSpawner = (agent) => {
     let furthestDeliver = 0;
@@ -114,7 +122,7 @@ const findFurthestParcelSpawner = (agent) => {
         }
     }
 
-    return { x:best_spot[0], y:best_spot[1] }; // Return an object with x and y properties
+    return { x:best_spot[0], y:best_spot[1] };
 }
 
 const getRewardAtDestination = (initial_reward, starting_pos, destination, n_parcels = 1) => {
@@ -125,7 +133,6 @@ const getRewardAtDestination = (initial_reward, starting_pos, destination, n_par
  * Compare urgency of two intentions
  */
 const compareUrgency = (intention1, intention2) =>{
-    // Delivery is generally more urgent when carrying parcels
     if (intention1.predicate[0] === GO_DELIVER && intention2.predicate[0] !== GO_DELIVER) {
         return beliefs.me.carried_parcels_count > 0 ? -1 : 0;
     }
@@ -136,13 +143,13 @@ const compareUrgency = (intention1, intention2) =>{
 }
 
 /**
- * Generate a unique key for an intention (for failure tracking)
- * @param {Array} predicate - The intention predicate
- * @returns {string} Unique key for the intention
+ * Generate a unique key for an intention
+ * @param {Array} predicate
+ * @returns {string}
  */
 const getIntentionKey = (predicate) => {
     if (predicate[0] === GO_PICK_UP && predicate[3]) {
-        return `${predicate[0]}-${predicate[3]}`; // Include parcel_id
+        return `${predicate[0]}-${predicate[3]}`;
     }
     return `${predicate[0]}-${predicate[1]}-${predicate[2]}`;
 }
@@ -153,7 +160,7 @@ const isIntentionAlreadyQueued = (intention_queue, intentionKey) =>{
 
 export {
     GO_TO, GO_PICK_UP, GO_DELIVER, BLOCKED_TILES, WALKABLE_SPAWNING_TILES, DELIVERABLE_TILES, WALKABLE_TILES,
-    DEFAULT_STOP_CODE, QUEUE_SWAP_STOP_CODE,
+    DEFAULT_STOP_CODE, QUEUE_SWAP_STOP_CODE, INVALID_STOP_CODE, STOP_CODE_LABELS, describeStopCode,
     ERROR_CODES,
     RETRYABLE_ERROR_CODES, getErrorCode, getErrorStopCode, isInterruptionError,
     DEBUG, debugLog,

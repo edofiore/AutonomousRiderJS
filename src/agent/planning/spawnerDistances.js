@@ -46,12 +46,9 @@ let spawnerIndex = null;    // Map<"x-y", i>
 let distFrom = null;        // Map<"x-y", Map<nodeId, dist>> BFS from each spawner
 let maxDist = 1;            // largest observed distance (normalization / penalty value)
 
-// General-purpose lazy distance tables, one BFS table per queried TARGET
-// tile, kept forever (the map is static). Query targets — parcels, delivery
-// spots, agent positions — repeat constantly, so this converges to a handful
-// of tables in practice and is bounded by the number of walkable tiles in the
-// worst case (~900 tables × ~900 entries ≈ tens of MB, acceptable). This is
-// what makes `distance()` a 0.2 µs lookup instead of a 0.2 ms Dijkstra run.
+// General-purpose lazy distance cache: maintains one BFS distance table per queried
+// target tile on the static map. Since query targets (parcels, delivery spots, agents)
+// repeat frequently, caching enables O(1) lookups during intensive score evaluation.
 const lazyTables = new Map(); // Map<tileId, Map<nodeId, dist>>
 
 /**

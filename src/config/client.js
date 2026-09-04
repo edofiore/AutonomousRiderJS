@@ -2,14 +2,13 @@ import { DeliverooApi } from "@unitn-asa/deliveroo-js-client";
 import {default as config} from "./config.js"
 
 /**
- * API
+ * Deliveroo API Client Initialization
  */
 
-// DeliverooApi's constructor overrides console.log to mirror EVERY logged
-// line back to the server over the socket (emitLog). The server discards
-// them (BROADCAST_LOGS=false) and our agents log thousands of lines per
-// minute, so that's a pure socket-write tax on the hot path. Capture the
-// original before construction and restore it right after.
+// DeliverooApi's constructor overrides console.log to mirror logged lines
+// back to the server over the socket (emitLog). To eliminate unnecessary
+// socket write overhead on the execution path, capture the original console.log
+// before construction and restore it immediately afterward.
 const originalConsoleLog = console.log;
 
 const client = new DeliverooApi(

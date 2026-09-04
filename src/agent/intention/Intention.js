@@ -4,7 +4,8 @@
 
 import { beliefs } from "../beliefs/beliefs.js";
 import { planLibrary } from "../planning/index.js";
-import { GO_DELIVER, GO_PICK_UP, DEFAULT_STOP_CODE, ERROR_CODES, debugLog } from "../utils.js";
+import { GO_DELIVER, GO_PICK_UP, DEFAULT_STOP_CODE, ERROR_CODES, describeStopCode, debugLog } from "../utils.js";
+import { metricPlanResult } from "../benchmark/metrics.js";
 
 class Intention {
     // Plan currently used for achieving the intention
@@ -16,10 +17,10 @@ class Intention {
         return this.#stopped;
     }
     async stop (stopCode) {
-        this.log( 'stop intention', ...this.#predicate, 'with error code', stopCode);
         this.#stopped = stopCode || DEFAULT_STOP_CODE;
+        this.log( 'stop intention', ...this.#predicate, 'with stop code', describeStopCode(this.#stopped));
         if (this.#current_plan)
-            await this.#current_plan.stop(stopCode);
+            await this.#current_plan.stop(this.#stopped);
     }
 
     /**
@@ -65,6 +66,8 @@ class Intention {
         debugLog(`Is intention ${action} ${x}-${y} still valid?`);
 
         if(action == GO_PICK_UP) {
+            if (beliefs.me?.carried_parcel_ids?.includes(p_id)) return true;
+
             let p = beliefs.storedParcels.get(p_id)?.parcel;
 
             if (!p || p.carriedBy || p.reward <= 0) {
@@ -79,7 +82,7 @@ class Intention {
                 return false;
             }
         }
-        // TODO should we consider GO_TO also????
+        // GO_TO intentions remain valid until reached or preempted.
 
         return true;
     }
@@ -116,11 +119,13 @@ class Intention {
                 // Plan is executed and result is returned
                 try {
                     const plan_res = await this.#current_plan.execute(...this.#predicate);
+                    metricPlanResult(planClass.name, this.predicate[0], true);
                     this.log('Succesfull intention', ...this.predicate, 'with plan', planClass.name, 'with result', plan_res);
                     return plan_res;
 
                 // Errors are caught so to continue with next plan
                 } catch (error) {
+                    metricPlanResult(planClass.name, this.predicate[0], false, error);
                     this.log('Failed intention', ...this.predicate, 'with plan', planClass.name, 'with error:', error);
                 }
             }
@@ -130,7 +135,6 @@ class Intention {
         if (this.stopped) throw [ERROR_CODES.INTENTION_STOPPED, this.stopped, ...this.predicate];
 
         // No plans have been found to satisfy the intention
-        // this.log( 'no plan satisfied the intention ', ...this.predicate );
         throw [ERROR_CODES.NO_PLAN, ...this.predicate]
 
     }

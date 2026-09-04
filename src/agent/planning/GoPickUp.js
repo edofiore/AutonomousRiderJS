@@ -96,7 +96,6 @@ class GoPickUp extends Plan {
         }
         console.log(`Successfully picked up main target parcel ${id}`);
 
-        if (this.stopped) throw [ERROR_CODES.STOPPED];
         return true;
     }
 
@@ -128,9 +127,7 @@ class GoPickUp extends Plan {
                     continue;
                 }
 
-                // Skip parcels marked invalid (e.g. ones we just handed off to
-                // the teammate) — along-path pickup bypasses optionsGeneration,
-                // so it must honor the suppression list itself.
+                // Skip parcels marked invalid (e.g. recently handed off to the teammate)
                 if (beliefs.invalidOptions.has(getIntentionKey([GO_PICK_UP, parcel.x, parcel.y, parcelId]))) {
                     continue;
                 }
@@ -154,8 +151,7 @@ class GoPickUp extends Plan {
                 }
             }
 
-            // Sort parcels by distance from start (to pick them up in order along the path)
-            // You could also sort by efficiency or other criteria
+            // Sort parcels by distance from start to collect them sequentially along the path
             pathParcels.sort((a, b) => a.distanceFromStart - b.distanceFromStart);
 
             debugLog("Parcels along path:", pathParcels.map(p => 

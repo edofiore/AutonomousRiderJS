@@ -65,7 +65,7 @@ let population = null;      // Uint8Array[]
 let pressures = null;       // Float64Array, opponent pressure per spawner
 let version = 0;
 let activeGenome = null;    // currently adopted & broadcast partition
-let activeMyLabel = 0;      // which label of activeGenome is my zone (frozen at adoption)
+let activeMyLabel = 0;      // active zone label assigned to this agent (frozen at adoption)
 
 const randomGenome = (size) => {
     const g = new Uint8Array(size);
@@ -189,8 +189,8 @@ const nearestZoneDist = (genome, label, pos) => {
  * this label→agent mapping instead of picking the cheaper one. Used to
  * re-evaluate the ACTIVE partition under current weights without letting a
  * mapping flip silently swap the two agents' zones.
- * @returns {{cost: number, mapping: number}} mapping=0 → I take label 0,
- * mapping=1 → I take label 1.
+ * @returns {{cost: number, mapping: number}} mapping=0: this agent takes label 0;
+ * mapping=1: this agent takes label 1.
  */
 const fitness = (genome, weights, myPos, matePos, fixedMapping = null) => {
     let w0 = 0, w1 = 0, c0 = 0, c1 = 0;
@@ -211,7 +211,7 @@ const fitness = (genome, weights, myPos, matePos, fixedMapping = null) => {
     const dMe1 = nearestZoneDist(genome, 1, myPos);
     const dMate0 = nearestZoneDist(genome, 0, matePos);
     const dMate1 = nearestZoneDist(genome, 1, matePos);
-    const asLabel0 = dMe0 + dMate1; // I take zone 0, teammate zone 1
+    const asLabel0 = dMe0 + dMate1; // Agent assigned zone 0, teammate assigned zone 1
     const asLabel1 = dMe1 + dMate0;
     const mapping = fixedMapping ?? (asLabel0 <= asLabel1 ? 0 : 1);
     cost += W_SWITCH * (mapping === 0 ? asLabel0 : asLabel1) / (2 * maxDist);

@@ -1,5 +1,6 @@
 import { beliefs, constantBeliefs, Intention, GO_TO, GO_DELIVER, GO_PICK_UP, calculateScore, optionsGeneration, getIntentionKey, QUEUE_SWAP_STOP_CODE, RETRYABLE_ERROR_CODES, getErrorCode, getErrorStopCode, isInterruptionError, debugLog } from "../index.js";
 import { announceClaim, releaseClaim } from "../coordination/index.js";
+import { metricIntentionCompleted, metricIntentionFailure } from "../benchmark/metrics.js";
 
 /**
  * Unified IntentionRevision class for BDI architecture
@@ -9,6 +10,8 @@ class IntentionRevision {
     #intention_queue = new Array();
     #failureCount = new Map(); // Track failure count per intention type <intentionKey, count>
     #lastFailureTime = new Map(); // Track when intentions last failed <intentionKey, timestamp>
+
+    static FAILURE_DECAY_INTERVAL = 10000;
 
     get intention_queue() {
         return this.#intention_queue;
@@ -28,20 +31,45 @@ class IntentionRevision {
     }
 
     /**
+     * Failure count for an intention key, decayed by time: one recorded
+     * failure is forgotten per FAILURE_DECAY_INTERVAL elapsed since the last
+     * one, so an intention that stops failing is eventually forgiven instead
+     * of carrying a permanent penalty for the rest of the session.
+     * @param {string} intentionKey
+     * @returns {number} the effective failure count (>= 0)
+     */
+    failuresFor(intentionKey) {
+        const recorded = this.#failureCount.get(intentionKey);
+        if (!recorded) return 0;
+
+        const last = this.#lastFailureTime.get(intentionKey) ?? 0;
+        const forgiven = Math.floor((Date.now() - last) / IntentionRevision.FAILURE_DECAY_INTERVAL);
+        const effective = recorded - forgiven;
+
+        if (effective <= 0) { // fully forgiven: stop tracking it at all
+            this.#failureCount.delete(intentionKey);
+            this.#lastFailureTime.delete(intentionKey);
+            return 0;
+        }
+        return effective;
+    }
+
+    /**
      * Record an intention failure for tracking
      * @param {string} intentionKey - The failed intention key
      * @param {*} error - The error that occurred
      */
     recordIntentionFailure(intentionKey, error) {
-        const currentFailures = this.#failureCount.get(intentionKey) || 0;
+        const currentFailures = this.failuresFor(intentionKey);
         
         this.#failureCount.set(intentionKey, currentFailures + 1);
         this.#lastFailureTime.set(intentionKey, Date.now());
-        
+        metricIntentionFailure(intentionKey, error);
+
         console.log(`Recorded failure for ${intentionKey}: ${currentFailures + 1} total failures`);
         console.log(`Failure reason: `, error);
 
-        if(this.#failureCount.get(intentionKey) >= 5) {
+        if(this.failuresFor(intentionKey) >= 5) {
             console.log(`Intention ${intentionKey} has failed 5 or more times. Marking as invalid for 10 seconds.`);
             beliefs.invalidOptions.set(intentionKey, Date.now());
         }
@@ -135,12 +163,12 @@ class IntentionRevision {
         const score1 = calculateScore(
             intention1.predicate,
             agent_pos,
-            this.#failureCount.get(getIntentionKey(intention1.predicate)) || 0
+            this.failuresFor(getIntentionKey(intention1.predicate))
         );
         const score2 = calculateScore(
             intention2.predicate,
             agent_pos,
-            this.#failureCount.get(getIntentionKey(intention2.predicate)) || 0
+            this.failuresFor(getIntentionKey(intention2.predicate))
         );
 
         // Hysteresis: require the challenger to beat the incumbent by a
@@ -169,7 +197,7 @@ class IntentionRevision {
         const errorCode = getErrorCode(error);
         if (!errorCode) return false;
 
-        const failures = this.#failureCount.get(intentionKey) || 0;
+        const failures = this.failuresFor(intentionKey);
         
         // Don't retry if too many failures
         if (failures >= 5) return false;
@@ -226,6 +254,7 @@ class IntentionRevision {
                 // Execute intention with enhanced error handling
                 try {
                     await intention.achieve();
+                    metricIntentionCompleted(intention.predicate[0]);
                     console.log('Successfully completed intention:', intention.predicate);
                 } catch (error) {
                     console.log('Failed intention:', intention.predicate, 'Error:', error);
@@ -245,19 +274,18 @@ class IntentionRevision {
                         await new Promise(resolve => 
                             setTimeout(resolve, constantBeliefs.config.MOVEMENT_DURATION)
                         );
+                        const retryIdx = this.intention_queue.indexOf(intention);
+                        if (retryIdx !== -1) {
+                            this.intention_queue[retryIdx] = new Intention(this, intention.predicate);
+                        }
                         continue; // Don't remove from queue, try again
                     }
                 }
 
-                // Remove completed/failed intention from queue.
-                // We remove by object identity (not `shift`) because the queue
-                // may have been mutated during the await — e.g. a `putInTheQueue`
-                // swap moved `intention` to another index, or dropped it entirely.
-                // `shift()` would remove whatever is now at position 0, which is
-                // often the newly-inserted intention, not the one we just
-                // finished. That was the "Failed intention → Successfully
-                // completed" phantom-success pattern in the logs.
-                releaseClaim(intention.predicate); // Part 2: free the parcel for the teammate
+                // Remove completed/failed intention from queue by reference identity.
+                // Using shift() could erroneously evict a newly inserted head intention
+                // if the queue was updated concurrently during the preceding await.
+                releaseClaim(intention.predicate); // Free target parcel claim for teammate
                 const idx = this.intention_queue.indexOf(intention);
                 if (idx !== -1) this.intention_queue.splice(idx, 1);
             } else {
@@ -275,15 +303,11 @@ class IntentionRevision {
     }
 
     /**
-     * Insert or replace intention at specific index in the queue.
+     * Insert or replace intention at a specific index in the queue.
      *
-     * Synchronous: we fire the old intention's `stop()` without awaiting it.
-     * `.stop()` sets the `#stopped` flag synchronously — that's the only thing
-     * the queue swap actually depends on. The cascading async stop of the
-     * plan's sub-intentions can finish in the background; the plan will see
-     * its `#stopped` flag on its next check and throw. Awaiting `stop()` here
-     * was the yield point that let a concurrent `push` slip a same-key
-     * intention into the slot and produce a duplicated queue.
+     * Synchronous: triggers stop() on the superseded intention without awaiting it.
+     * Setting the stop flag synchronously prevents event-loop interleaving that could
+     * allow concurrent pushes to insert duplicate intentions into the queue.
      *
      * @param {number} index - The queue position
      * @param {Intention} new_intention - The intention to insert

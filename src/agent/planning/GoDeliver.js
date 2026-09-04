@@ -14,36 +14,25 @@ class GoDeliver extends Plan {
             throw [ERROR_CODES.NOTHING_TO_DELIVER];
         }
         if (this.stopped) throw [ERROR_CODES.STOPPED]; // if stopped then quit
-        await this.subIntention( ['go_to', parseInt(x), parseInt(y)] );
+
+        const tx = parseInt(x), ty = parseInt(y);
+        await this.subIntention( ['go_to', tx, ty] );
         if (this.stopped) throw [ERROR_CODES.STOPPED]; // if stopped then quit
-        console.log("DELIVERYING AT: ", x, y, "(INTENTION)");
-        if(beliefs.me.x == x && beliefs.me.y == y){
-            await client.emitPutdown();
+
+        if (beliefs.me.x !== tx || beliefs.me.y !== ty) {
+            throw [ERROR_CODES.DELIVERY_FAILED, 'not on the delivery tile',
+                   { x: beliefs.me.x, y: beliefs.me.y }, { x: tx, y: ty }];
         }
-        if (this.stopped) throw [ERROR_CODES.STOPPED]; // if stopped then quit
+
+        console.log("DELIVERYING AT: ", tx, ty, "(INTENTION)");
+        const delivered = await client.emitPutdown();
+
+        if (!Array.isArray(delivered) || delivered.length === 0) {
+            throw [ERROR_CODES.DELIVERY_FAILED, 'putdown returned no parcels', tx, ty];
+        }
+        console.log(`Delivered ${delivered.length} parcels at (${tx},${ty})`);
         return true;    
     } 
-
-    // async execute (go_deliver, x, y) {
-    //     let nearest = Number.MAX_VALUE;
-    //     let best_spot = [];
-    //     for (const deliverySpot of deliverySpots) {
-    //         let current_d = distance( {x:parseInt(deliverySpot[0]), y:parseInt(deliverySpot[1])}, me )
-    //         if ( current_d < nearest ) {
-    //             best_spot = deliverySpot;
-    //             nearest = current_d
-    //         }
-    //     }
-    //     if (this.stopped) throw ['stopped']; // if stopped then quit
-    //     await this.subIntention( ['go_to', parseInt(best_spot[0]), parseInt(best_spot[1])] );
-    //     if (this.stopped) throw ['stopped']; // if stopped then quit
-    //     console.log("DELIVERYING AT: ", best_spot[0], best_spot[1], "(INTENTION)");
-    //     if(me.x == best_spot[0] && me.y == best_spot[1]){
-    //         await client.emitPutdown();
-    //     }
-    //     if (this.stopped) throw ['stopped']; // if stopped then quit
-    //     return true;    
-    // } 
 }
 
 export { GoDeliver };

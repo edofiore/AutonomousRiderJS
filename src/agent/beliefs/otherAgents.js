@@ -32,8 +32,7 @@ const updateInfoOtherAgents = (agents) => {
         
         beliefs.otherAgents.set( a.id, log);
 
-        // compute if within perceiving area (debug only: this formats a long
-        // string AND runs a distance() per agent, purely for the log line)
+        // Formatted debug output for currently tracked agents (debug mode only).
         if (DEBUG) {
             let prettyPrint = Array.from(beliefs.otherAgents.values()).map( (log) => {
                 const {timestamp,name,x,y,direction} = log;

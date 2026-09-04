@@ -8,18 +8,16 @@ const updatePerceivedParcels = async ( perceivedParcels ) => {
     
     let current_carried_parcels = 0;
     let current_carried_reward = 0;
+    const current_carried_ids = [];
 
     const now = Date.now();
 
     // Adds new uncarried perceived parcels
     for (const p of perceivedParcels) {
 
-        // Malformed-sensing guard: the server reads parcel.xy?.x, so a rare
-        // race (e.g. mid-putdown on a delivery tile) can deliver a parcel
-        // with undefined coordinates or reward. Storing one poisons the
-        // scoring pipeline (every calculateScore throws BAD_COORDINATES and
-        // optionsGeneration aborts on every tick) — reject it here, at the
-        // single point where sensed parcels enter beliefs.
+        // Validation guard: reject parcels with invalid coordinates or reward
+        // (which can occur during transient server states, such as putdown on delivery tiles)
+        // to prevent invalid state in downstream score calculations.
         if (!Number.isFinite(p.x) || !Number.isFinite(p.y) || !Number.isFinite(p.reward)) continue;
 
         // Adds parcels that are perceived and not being carried by any agent
@@ -31,26 +29,27 @@ const updatePerceivedParcels = async ( perceivedParcels ) => {
             // Removes parcels that are now being carried
             beliefs.storedParcels.delete(p.id);
 
-            // Update info about the parcels I'm carrying
+            // Update info about carried parcels
             if ( p.carriedBy == beliefs.me.id ) {
                 current_carried_parcels += 1;
                 current_carried_reward += p.reward;
+                current_carried_ids.push(p.id);
             }
         }
     }
 
     beliefs.me.carried_parcels_count = current_carried_parcels;
     beliefs.me.total_carried_reward = current_carried_reward;
+    beliefs.me.carried_parcel_ids = current_carried_ids;
     
-    // Remove parcels that are no more perceived
+    // Remove parcels that are no longer perceived
     for ( const parcel_data of beliefs.storedParcels.values() ) {
 
         if ( perceivedParcels.map( p => p.id ).find( id => id == parcel_data.parcel.id ) == undefined ) {
             const decay = ((now - parcel_data.timestamp) / 1000) / constantBeliefs.config.PDI;
             const parcel_current_reward = parcel_data.parcel.reward - decay;
 
-            // NaN-safe: !(x > 0) also catches NaN rewards, which must be
-            // deleted too or the entry becomes immortal (NaN <= 0 is false).
+            // Evict parcels whose decayed reward has reached zero or is invalid
             if (!(parcel_current_reward > 0)) {
                 beliefs.storedParcels.delete(parcel_data.parcel.id);
             } else {
@@ -73,8 +72,7 @@ const updateStoredParcels = async () => {
             const decay = ((now - parcel_data.timestamp) / 1000) / constantBeliefs.config.PDI;
             const parcel_current_reward = parcel_data.parcel.reward - decay;
 
-            // NaN-safe: !(x > 0) also catches NaN rewards, which must be
-            // deleted too or the entry becomes immortal (NaN <= 0 is false).
+            // Evict parcels whose decayed reward has reached zero or is invalid
             if (!(parcel_current_reward > 0)) {
                 beliefs.storedParcels.delete(parcel_data.parcel.id);
             } else {

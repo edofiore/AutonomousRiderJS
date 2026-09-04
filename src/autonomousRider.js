@@ -1,7 +1,9 @@
+import 'dotenv/config';
 import { updateInfoOtherAgents } from "./agent/beliefs/otherAgents.js";
 import { Agent, getMapConfig, processMapData, updateInfoAgent, updatePerceivedParcels, optionsGeneration } from "./agent/index.js";
 import { initCoordination, shareBeliefs } from "./agent/coordination/index.js";
 import { client } from "./config/index.js";
+import "./agent/benchmark/metrics.js"; // benchmark instrumentation (METRIC log lines)
     
 console.log("Start...")
 
@@ -97,7 +99,7 @@ initialized = true;
 // No-op unless team mode is enabled, so single-agent behaviour is preserved.
 initCoordination();
 
-// Function to trigger the agent when parcels are sensed
+// Start agent BDI main loop
 newAgent.start();
 
 export {newAgent};
