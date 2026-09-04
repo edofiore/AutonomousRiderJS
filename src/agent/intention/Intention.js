@@ -82,7 +82,7 @@ class Intention {
                 return false;
             }
         }
-        // TODO should we consider GO_TO also????
+        // GO_TO intentions remain valid until reached or preempted.
 
         return true;
     }
@@ -135,7 +135,6 @@ class Intention {
         if (this.stopped) throw [ERROR_CODES.INTENTION_STOPPED, this.stopped, ...this.predicate];
 
         // No plans have been found to satisfy the intention
-        // this.log( 'no plan satisfied the intention ', ...this.predicate );
         throw [ERROR_CODES.NO_PLAN, ...this.predicate]
 
     }

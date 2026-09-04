@@ -62,11 +62,9 @@ class BlindMove extends Plan {
                     console.log(`Tile ${nextCoordinates} is blocked. Attempting to replan...`);
                     noteTeammateBlock(nextCoordinates);
 
-                    // Teammate give-way: when the blocker is our teammate and
-                    // we are the yielding agent (deterministic by id, so
-                    // exactly one of the two yields), step aside to break a
-                    // head-on crossing deadlock — otherwise both agents replan
-                    // into each other's tiles forever (observed livelock).
+                    // Teammate give-way: when the blocking agent is the teammate and
+                    // this agent has the lower ID (deterministic tie-breaker),
+                    // yield by stepping aside to resolve head-on crossing deadlocks.
                     if (isTeammateAt(nextCoordinates)
                         && beliefs.me.id < beliefs.teammate.id
                         && Date.now() - lastGaveWayAt > constantBeliefs.config.MOVEMENT_DURATION * 4) {
@@ -215,17 +213,8 @@ class BlindMove extends Plan {
 
                 if (this.stopped) throw [ERROR_CODES.STOPPED];
 
-                // No explicit "wait for integer position" here. The DeliverooApi
-                // delivers 'you' events (intermediate + integer) BEFORE the move
-                // ack over the same socket, so by the time `emitMove` above has
-                // resolved, the persistent `onYou` handler has already updated
-                // `beliefs.me` to the target tile.
-                //
-                // The previous `waitForIntegerPosition` used `once('you')`, which
-                // races with socket.io's synchronous dispatch: if both `you`
-                // packets land in a single socket read, the intermediate one
-                // fires the once, and the integer one is emitted with no once
-                // registered — hanging the plan forever.
+                // DeliverooApi delivers 'you' events before emitMove resolves over the socket,
+                // ensuring beliefs.me is already updated to the target coordinates upon completion.
 
                 // Reset replan attempts on successful movement
                 replanAttempts = 0;
@@ -238,11 +227,9 @@ class BlindMove extends Plan {
     }
 
     /**
-     * Step aside to let the teammate pass, then pause so they can move
-     * through the tile we vacated. Picks the free neighbour of our current
-     * tile that is farthest from the teammate (best clears the way) and is
-     * not the teammate's own tile. If we're boxed in with nowhere to step,
-     * just wait a beat. Only the yielding agent (lower id) ever calls this.
+     * Yield position to let the teammate pass, then pause so they can move
+     * through the tile vacated. Selects the free neighbor of the current
+     * tile farthest from the teammate.
      */
     async giveWayToTeammate() {
         const pause = constantBeliefs.config.MOVEMENT_DURATION * 2;
@@ -259,7 +246,7 @@ class BlindMove extends Plan {
         }
 
         if (!best) {
-            // Boxed: nothing to do but wait and hope the teammate reroutes.
+            // Boxed: wait for teammate to route around
             await new Promise(r => setTimeout(r, pause));
             return;
         }
@@ -271,26 +258,9 @@ class BlindMove extends Plan {
         else if (best.y < beliefs.me.y) dir = 'down';
         if (dir) await client.emitMove(dir);
 
-        // Give the teammate time to move through the tile we just vacated.
+        // Allow teammate time to traverse the vacated tile.
         await new Promise(r => setTimeout(r, pause));
     }
-
-    /**
-     * Clear some blocked tiles that might be old or no longer relevant
-     */
-    // clearSomeBlockedTiles() {
-    //     const currentTime = Date.now();
-    //     const maxAge = constantBeliefs.config.MOVEMENT_DURATION * 3; // movement cycles
-        
-    //     beliefs.tmpBlockedTiles = beliefs.tmpBlockedTiles.filter(blockedTile => {
-    //         if (typeof blockedTile === 'object' && blockedTile.timestamp) {
-    //             return currentTime - blockedTile.timestamp < maxAge;
-    //         }
-    //         return false; // Remove tiles without timestamp
-    //     });
-        
-    //     console.log("Cleared old blocked tiles. Remaining:", beliefs.tmpBlockedTiles.length);
-    // }
 }
 
 export { BlindMove };

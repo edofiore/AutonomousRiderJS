@@ -184,8 +184,8 @@ export class PddlPlan extends Plan {
             console.log(`  - (${step.action} ${step.args.join(' ')})`);
         }
 
-        // Parcels whose (delivered ?p) goal has actually been settled by our
-        // own actions: dropped on a delivery zone, or handed off to the mate.
+        // Parcels whose (delivered ?p) goal has been settled:
+        // dropped on a delivery zone, or handed off to the teammate.
         const settledParcels = new Set();
 
         // Execute plan steps
@@ -195,11 +195,9 @@ export class PddlPlan extends Plan {
             const actionName = step.action.toLowerCase();
             const agentName = step.args[0].toLowerCase();
 
-            // Steps assigned to the teammate cannot be executed from here.
-            // The only cooperative pattern we can realize is "me putdown →
-            // mate pickup" (communicated via HANDOFF_DONE below); any other
-            // step the solver delegates to the mate leaves its goal parcel
-            // unsettled and is caught by the postcondition check after the loop.
+            // Steps assigned to the teammate cannot be directly executed by this agent.
+            // Supported cooperative pattern: agent putdown followed by teammate pickup
+            // (communicated via HANDOFF_DONE below).
             if (agentName !== 'me') {
                 console.log(`[PDDL] Action (${step.action} ...) is for agent ${agentName}. Skipping it.`);
                 continue;
@@ -230,12 +228,10 @@ export class PddlPlan extends Plan {
                 const droppedIds = Array.isArray(dropped) ? dropped.map(p => p.id) : [];
 
                 if (actionName === 'deliver') {
-                    // Dropping on a delivery zone delivers everything we carry.
+                    // Dropping on a delivery zone delivers all carried parcels.
                     for (const did of droppedIds) settledParcels.add(did);
                 } else if (droppedIds.length > 0 && beliefs.teammate.id !== null) {
-                    // A putdown on a non-delivery tile only appears in a plan
-                    // as a donation to the teammate: goal parcels dropped here
-                    // count as settled only if the handoff message went out.
+                    // Putdown on a non-delivery tile represents a donation to the teammate
                     const mateLog = beliefs.otherAgents.get(beliefs.teammate.id);
                     if (mateLog && Date.now() - mateLog.timestamp < 2000) {
                         console.log(`[PDDL-TEAM] Donating dropped parcels [${droppedIds}] to teammate`);
@@ -311,7 +307,7 @@ export class PddlPlan extends Plan {
         // Collect relevant parcels
         const relevantParcels = new Map();
 
-        // 1. Add currently carried parcels by me
+        // 1. Add currently carried parcels
         for (const pid of beliefs.me.carried_parcel_ids || []) {
             const pInfo = beliefs.storedParcels.get(pid)?.parcel || { id: pid, reward: 1 };
             relevantParcels.set(pid, pInfo);

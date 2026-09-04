@@ -2,8 +2,7 @@
  * Benchmark / evaluation instrumentation.
  *
  * Emits machine-parsable metric records on stdout, one JSON object per line,
- * prefixed with "METRIC " so they can be grepped out of the regular agent
- * chatter:
+ * prefixed with "METRIC " so they can be filtered from standard agent logs:
  *
  *     METRIC {"t":1720000000000,"event":"pickup","n":1,...}
  *

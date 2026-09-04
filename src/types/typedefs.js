@@ -22,12 +22,6 @@
  */
 
 /**
- * TODO:
- * - add options/intentions type
- * - 
- */
-
-/**
  * @global
  * @typedef {Object} AgentInfo
  * @property {string} name - Agent name

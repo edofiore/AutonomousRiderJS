@@ -2,7 +2,7 @@ import { Intention, DEFAULT_STOP_CODE, describeStopCode } from "../index.js";
 
 export class Plan {
 
-    // This is an array of sub intention. Multiple ones could eventually being achieved in parallel.
+    // Array of sub-intentions managed by this plan
     #sub_intentions = [];
 
     async subIntention(predicate) {
@@ -11,7 +11,7 @@ export class Plan {
         return await sub_intention.achieve();
     }
     
-    // This is used to stop the plan
+    // Stop indicator and reason code
     #stopped = 0; // false
 
     async stop (stopCode) {
@@ -27,7 +27,7 @@ export class Plan {
     }
 
     /**
-     * #parent refers to caller
+     * Reference to parent caller
      */
     #parent;
 

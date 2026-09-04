@@ -2,8 +2,8 @@ import dijkstra from 'graphology-shortest-path';
 import { beliefs, constantBeliefs, debugLog } from "../index.js";
 
 /**
- * Enhanced blocked tile management structure
- * Each blocked tile now has: { tile: string, timestamp: number, attempts: number }
+ * Blocked tile management structure.
+ * Each blocked tile has schema: { tile: string, timestamp: number, attempts: number }
  */
 
 /**
@@ -28,7 +28,7 @@ const addTemporaryBlockedTile = (tileId) => {
     if (existingIndex !== -1) {
         const existing = beliefs.tmpBlockedTiles[existingIndex];
 
-        // Legacy format support: older code used plain strings.
+        // Normalize string entries to object format
         if (typeof existing === 'string') {
             beliefs.tmpBlockedTiles[existingIndex] = {
                 tile: tileId,
@@ -66,7 +66,6 @@ const clearOldBlockedTiles = () => {
     const maxAge = (typeof movementDuration === 'number' && Number.isFinite(movementDuration) && movementDuration > 0)
         ? movementDuration * 3
         : Number.POSITIVE_INFINITY;
-    // const maxAttempts = 5;
 
     if (!Array.isArray(beliefs.tmpBlockedTiles)) {
         beliefs.tmpBlockedTiles = [];
@@ -90,9 +89,7 @@ const clearOldBlockedTiles = () => {
 
         const age = currentTime - item.timestamp;
         const tooOld = age > maxAge;
-        // const tooManyAttempts = item.attempts > maxAttempts;
-        const tooManyAttempts = false;
-        return !tooOld && !tooManyAttempts;
+        return !tooOld;
     });
     
     if (beliefs.tmpBlockedTiles.length !== originalLength) {
@@ -150,15 +147,6 @@ const findBestPath = async (current_pos, destination, allowTemporaryBlocked = fa
 
     // Compute the path
     const path = dijkstra.bidirectional(mapGraph, myPos, dest);
-    
-    // if (!path || path.length === 0) {
-    //     // If no path found and we were excluding blocked tiles, try including them
-    //     if (!allowTemporaryBlocked && beliefs.tmpBlockedTiles?.length > 0) {
-    //         console.log("No path found excluding blocked tiles, trying with blocked tiles included...");
-    //         return findBestPath(current_pos, destination, true);
-    //     }
-    //     throw new Error(`No path found from ${myPos} to ${dest}`);
-    // }
 
     // Remove the starting position from the path
     if (!path || path.length === 0) {
@@ -216,7 +204,7 @@ const noteTeammateBlock = (nextCoordinates) => {
 };
 
 /**
- * Is `coords` currently occupied by our TEAMMATE (fresh sighting)?
+ * Check whether coordinates are currently occupied by the teammate (within freshness threshold).
  * @param {[number, number]} coords
  * @returns {boolean}
  */

@@ -99,7 +99,7 @@ initialized = true;
 // No-op unless team mode is enabled, so single-agent behaviour is preserved.
 initCoordination();
 
-// Function to trigger the agent when parcels are sensed
+// Start agent BDI main loop
 newAgent.start();
 
 export {newAgent};

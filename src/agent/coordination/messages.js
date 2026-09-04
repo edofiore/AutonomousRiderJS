@@ -8,11 +8,11 @@ const MSG = Object.freeze({
     HELLO_ACK: 'hello_ack',  // directed reply so both sides learn each other's id
     PARCELS:   'parcels',    // share sensed free parcels (belief sharing)
     AGENTS:    'agents',     // share sensed opponents (belief sharing)
-    CLAIM:     'claim',      // "I am committing to pick up this parcel"
-    RELEASE:   'release',    // "I am no longer pursuing this parcel"
+    CLAIM:     'claim',      // target intention commitment announcement
+    RELEASE:   'release',    // target intention release announcement
     ZONES:     'zones',      // leader broadcasts the evolved map partition
-    HANDOFF:      'handoff',      // ask: "I'm next to you carrying parcels — will you take them?"
-    HANDOFF_DONE: 'handoff_done', // say: "dropped N parcels for you at (x,y)"
+    HANDOFF:      'handoff',      // ask: propose parcel handoff to adjacent teammate
+    HANDOFF_DONE: 'handoff_done', // notification that handoff parcels have been placed
 });
 
 /**

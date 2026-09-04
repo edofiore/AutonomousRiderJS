@@ -282,15 +282,10 @@ class IntentionRevision {
                     }
                 }
 
-                // Remove completed/failed intention from queue.
-                // We remove by object identity (not `shift`) because the queue
-                // may have been mutated during the await — e.g. a `putInTheQueue`
-                // swap moved `intention` to another index, or dropped it entirely.
-                // `shift()` would remove whatever is now at position 0, which is
-                // often the newly-inserted intention, not the one we just
-                // finished. That was the "Failed intention → Successfully
-                // completed" phantom-success pattern in the logs.
-                releaseClaim(intention.predicate); // Part 2: free the parcel for the teammate
+                // Remove completed/failed intention from queue by reference identity.
+                // Using shift() could erroneously evict a newly inserted head intention
+                // if the queue was updated concurrently during the preceding await.
+                releaseClaim(intention.predicate); // Free target parcel claim for teammate
                 const idx = this.intention_queue.indexOf(intention);
                 if (idx !== -1) this.intention_queue.splice(idx, 1);
             } else {
@@ -308,15 +303,11 @@ class IntentionRevision {
     }
 
     /**
-     * Insert or replace intention at specific index in the queue.
+     * Insert or replace intention at a specific index in the queue.
      *
-     * Synchronous: we fire the old intention's `stop()` without awaiting it.
-     * `.stop()` sets the `#stopped` flag synchronously — that's the only thing
-     * the queue swap actually depends on. The cascading async stop of the
-     * plan's sub-intentions can finish in the background; the plan will see
-     * its `#stopped` flag on its next check and throw. Awaiting `stop()` here
-     * was the yield point that let a concurrent `push` slip a same-key
-     * intention into the slot and produce a duplicated queue.
+     * Synchronous: triggers stop() on the superseded intention without awaiting it.
+     * Setting the stop flag synchronously prevents event-loop interleaving that could
+     * allow concurrent pushes to insert duplicate intentions into the queue.
      *
      * @param {number} index - The queue position
      * @param {Intention} new_intention - The intention to insert

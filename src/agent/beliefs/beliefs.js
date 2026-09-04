@@ -29,26 +29,24 @@ const beliefs = {
         carriedReward: 0,  // self-reported carried reward
         lastSeen: 0,    // timestamp of the last message received from the teammate
     },
-    // Parcels the teammate has committed to (so we don't chase the same one).
+    // Intentions the teammate has committed to (prevents pursuing conflicting targets).
     // Map of < intentionKey, { parcelId, x, y, score, timestamp } >
     teamClaims: new Map(),
 
-    // Evolved map partition (Part 2 strategy). `mine` is the set of spawner
-    // tile ids ("x-y") this agent should patrol when idle; null = no
-    // partition active (solo mode, no teammate, or map with <2 spawners).
+    // Evolved map partition (Part 2 strategy). 'mine' contains spawner tile IDs
+    // ("x-y") assigned to this agent when idle; null = no partition active
+    // (solo mode, no teammate, or map with < 2 spawners).
     zones: {
         version: 0,
         mine: null,
     },
 
-    // True while we are executing a handoff drop: the intention loop pauses
-    // so no new movement races the emitPutdown (the server rejects actions
-    // issued while a move is in progress).
+    // True while executing a handoff drop: pauses the intention loop to
+    // prevent issuing moves that would cause the server to reject emitPutdown.
     handoffInProgress: false,
 
-    // Timestamp of the last time our movement was blocked by the TEAMMATE's
-    // body (not an opponent). Used to fast-track handoff negotiation: a
-    // mutual block should be resolved by talking, not by fail/retry churn.
+    // Timestamp of the last time movement was blocked by the teammate's position.
+    // Used to fast-track handoff negotiation instead of repeating blocked move attempts.
     teammateBlockedAt: 0,
 }
 

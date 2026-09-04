@@ -31,25 +31,25 @@ const hasTeammate = () => beliefs.teammate.id !== null;
 // this locally from the same two ids, so no negotiation is needed.
 const isLeader = () => hasTeammate() && beliefs.me.id !== null && beliefs.me.id < beliefs.teammate.id;
 
-// How long without any teammate message before we consider them gone and
-// drop the partition (reverting to whole-map wandering).
+// How long without any teammate message before assuming disconnection
+// and dropping the partition (reverting to full-map exploration).
 const TEAMMATE_TIMEOUT = 10000;
 
 // --- Opportunistic parcel handoff ---
-// When teammates meet while one carries parcels, the carrier may hand its
-// load to the other: one consolidated delivery trip instead of two, and the
-// agent with better field options keeps harvesting.
+// When teammates meet while one carries parcels, the carrier may transfer its
+// load to the other: consolidating into a single delivery trip while the other
+// agent continues collecting parcels in the field.
 const HANDOFF_RANGE = Number(process.env.HANDOFF_RANGE ?? 2); // max Manhattan distance to propose (env-overridable for testing)
 const HANDOFF_MARGIN = 1.15;     // proposer's best option must beat receiver's by this factor
-const HANDOFF_COOLDOWN = 15000;  // ms between ECONOMIC handoffs (prevents parcel ping-pong)
-const HANDOFF_COOLDOWN_POSITIONAL = 5000; // positional relays can't ping-pong; re-arm faster
-const PROPOSAL_COOLDOWN = 3000;  // ms between proposal attempts (don't spam rejected asks)
-const TEAMMATE_BLOCK_FRESHNESS = 1500; // a block younger than this fast-tracks negotiation
+const HANDOFF_COOLDOWN = 15000;  // ms between economic handoffs (prevents parcel ping-pong)
+const HANDOFF_COOLDOWN_POSITIONAL = 5000; // positional relays cannot ping-pong; re-arm faster
+const PROPOSAL_COOLDOWN = 3000;  // ms between proposal attempts (avoids repeated rejected asks)
+const TEAMMATE_BLOCK_FRESHNESS = 1500; // block threshold to fast-track negotiation
 let lastHandoffTime = 0;
 let lastProposalTime = 0;
-let handoffInFlight = false;     // a proposal of ours is awaiting a reply
+let handoffInFlight = false;     // a proposal is awaiting a reply
 
-/** Record (or refresh) the teammate identity, ignoring our own echoes. */
+/** Record or refresh teammate identity, ignoring self messages. */
 const setTeammate = (id, name) => {
     if (!id || id === beliefs.me.id || id === beliefs.teammate.id) return;
     beliefs.teammate.id = id;
@@ -59,8 +59,8 @@ const setTeammate = (id, name) => {
 };
 
 /**
- * Merge parcels shared by the teammate into our beliefs. We never overwrite a
- * parcel we are currently sensing ourselves (that data is fresher and richer).
+ * Merge parcels shared by the teammate into local beliefs. Direct local
+ * perceptions take precedence over shared remote data.
  */
 const mergeSharedParcels = (parcels) => {
     const now = Date.now();
@@ -68,14 +68,14 @@ const mergeSharedParcels = (parcels) => {
         if (!p || p.carriedBy || !(p.reward > 0)) continue;
         if (!Number.isFinite(p.x) || !Number.isFinite(p.y)) continue; // malformed share
         const existing = beliefs.storedParcels.get(p.id);
-        if (existing?.visible) continue; // we can see it directly, keep ours
+        if (existing?.visible) continue; // local sensing takes priority
         beliefs.storedParcels.set(p.id, { parcel: p, timestamp: now, visible: false });
     }
 };
 
 /**
- * Merge opponents shared by the teammate. We exclude ourselves and the
- * teammate, and we never overwrite a fresher direct observation.
+ * Merge opponent positions shared by the teammate. Excludes teammate
+ * and self, preserving fresher direct observations.
  */
 const mergeSharedAgents = (agents) => {
     const now = Date.now();
@@ -91,11 +91,9 @@ const mergeSharedAgents = (agents) => {
 };
 
 /**
- * Best score among my currently-known free-parcel pickup options — "what I
- * would gain by staying in the field instead of delivering". Note: each
- * agent evaluates this with its OWN carried load included in calculateScore,
- * which slightly inflates a carrier's number; the HANDOFF_MARGIN absorbs
- * that bias (and the bias direction favors consolidation, which is fine).
+ * Best score among currently known free-parcel pickup options, representing
+ * potential field gain versus immediate delivery. Evaluated with currently
+ * carried load included in calculateScore.
  */
 const bestPickupScore = () => {
     let best = 0;
@@ -103,9 +101,7 @@ const bestPickupScore = () => {
     const mate = mateEntry && Date.now() - mateEntry.timestamp < 5000 ? mateEntry : null;
     for (const { parcel } of beliefs.storedParcels.values()) {
         if (parcel.carriedBy || !(parcel.reward > 0)) continue;
-        // Same rule as optionsGeneration: a parcel under the teammate's feet
-        // is not a real opportunity for us — counting it would e.g. make a
-        // handoff receiver reject based on "options" it can never take.
+        // Parcels directly under the teammate's position cannot be picked up
         if (mate && Math.floor(mate.x) === Math.floor(parcel.x) && Math.floor(mate.y) === Math.floor(parcel.y)) continue;
         const s = calculateScore([GO_PICK_UP, parcel.x, parcel.y, parcel.id], { x: beliefs.me.x, y: beliefs.me.y });
         if (s > best) best = s;
@@ -113,8 +109,7 @@ const bestPickupScore = () => {
     return best;
 };
 
-/** emitAsk with a client-side timeout: the server's ask can silently never
- *  resolve if the teammate's socket drops between adjacency and reply. */
+/** emitAsk with a client-side timeout in case the recipient drops connection. */
 const askWithTimeout = (toId, msg, ms = 1500) => Promise.race([
     client.emitAsk(toId, msg),
     new Promise(resolve => setTimeout(() => resolve(undefined), ms)),
@@ -123,8 +118,8 @@ const askWithTimeout = (toId, msg, ms = 1500) => Promise.race([
 const stepDelay = () => new Promise(r => setTimeout(r, constantBeliefs.config.MOVEMENT_DURATION || 200));
 
 /**
- * Free neighbor of MY current tile that is farthest from `refPos` (never the
- * tile refPos occupies). Returns {x, y} or null when boxed in.
+ * Free neighbor of current agent tile that is farthest from `refPos` (excluding refPos).
+ * Returns {x, y} or null when boxed in.
  */
 const freeNeighborAwayFrom = (refPos) => {
     const myTile = `${Math.floor(beliefs.me.x)}-${Math.floor(beliefs.me.y)}`;
@@ -155,12 +150,8 @@ const moveOneStep = async (target, retries = 3) => {
 };
 
 /**
- * Mark donated parcels as off-limits for ourselves, and stop any of our own
- * queued/executing pickups that target them. The second part is essential:
- * sensing-triggered optionsGeneration can enqueue a pickup for the parcel we
- * JUST dropped (it's free and one tile away — top score) in the milliseconds
- * before the suppression lands, and achieving it would both steal the gift
- * back and broadcast a claim that preempts the receiver.
+ * Suppress dropped handoff parcels in local options generation to prevent
+ * the donor agent from immediately picking them back up or preempting the receiver.
  */
 const suppressDonatedParcels = (ids, dropPos) => {
     for (const pid of ids) {
@@ -176,11 +167,9 @@ const suppressDonatedParcels = (ids, dropPos) => {
 };
 
 /**
- * Receiver-side choreography for a BOXED proposer (carrier standing on a
- * dead-end tile with us blocking its only exit — e.g. camping the hallway
- * spawner): we retreat two tiles so the carrier can step out, drop the
- * parcels on the freed tile, and step back in. Fire-and-forget: runs while
- * our accept reply travels back.
+ * Receiver-side maneuver for a boxed proposer: when the carrier is on a dead-end
+ * tile and blocked by the receiver, the receiver retreats two steps so the carrier
+ * can exit, drop parcels on the cleared tile, and step back.
  */
 const retreatForHandoff = async (proposerPos) => {
     beliefs.handoffInProgress = true;
@@ -198,22 +187,11 @@ const retreatForHandoff = async (proposerPos) => {
 };
 
 /**
- * Propose a handoff when we carry parcels and the teammate is right next to
- * us. The receiver decides (it knows both agents' numbers); on accept we
- * put our load down and step off the drop tile: the dropped parcels become
- * ordinary free parcels that the receiver's normal sensing/scoring pipeline
- * picks up (it is 1-2 tiles away, so they are its top option), while we
- * self-suppress them via invalidOptions so we don't re-grab our own gift.
- * Our now-empty go_deliver is killed by the ghost-head check on the next
- * options tick. The random jitter breaks proposal symmetry when both agents
- * carry and propose simultaneously (both would reject while inFlight).
- *
- * BOXED case (we stand on a dead-end tile and the receiver blocks the only
- * exit — the steady state on corridor maps, where the harvester camps the
- * single spawner): no drop position on our own tile is reachable by the
- * receiver, so the choreography inverts — the receiver retreats (see
- * retreatForHandoff), we step out onto the freed tile, drop THERE, and step
- * back into the dead end; the receiver then returns and collects.
+ * Propose a handoff when carrying parcels and the teammate is adjacent.
+ * If the receiver accepts, the carrier deposits its parcels and clears the drop tile.
+ * The receiver's options generation pipeline subsequently picks them up.
+ * In dead-end corridor situations (boxed case), the receiver retreats first
+ * so the carrier can access an open tile to drop the parcels.
  */
 const maybeProposeHandoff = async () => {
     if (!config.team.enabled || !hasTeammate() || handoffInFlight) return;
@@ -365,14 +343,9 @@ const maybeProposeHandoff = async () => {
 };
 
 /**
- * Part 2: retroactive claim honoring. Claims normally only filter option
- * GENERATION; but claims are announced when execution starts, so both agents
- * can commit to the same parcel within that race window and the loser would
- * keep walking to a parcel it can never win. When a claim arrives for a
- * pickup we already have queued or executing, re-run the same comparison
- * used at generation time and abandon our intention if the teammate wins.
- * Pickups only: parcels are rivalrous, while delivery/wander spots can be
- * shared, so preempting those would only hurt.
+ * Retroactive claim honoring: re-evaluate a contested pickup if a teammate
+ * claim arrives while already enqueued or executing. If the teammate has
+ * a higher utility score, stop the local intention to avoid redundant travel.
  */
 const preemptClaimedIntention = (intentionKey) => {
     const queue = newAgent?.intentionRevision?.intention_queue;
@@ -557,7 +530,7 @@ const isClaimedByTeammate = (intentionKey, myScore) => {
     return false;
 };
 
-/** Share our currently known free parcels and opponents with the teammate. */
+/** Share currently known free parcels and opponent sightings with teammate. */
 const shareBeliefs = () => {
     if (!config.team.enabled || !hasTeammate()) return;
 
@@ -568,24 +541,19 @@ const shareBeliefs = () => {
 
     const parcels = [];
     for (const data of beliefs.storedParcels.values()) {
-        // Forward only parcels we are *currently* sensing directly; this prevents
-        // a parcel from ping-ponging between agents and never aging out (the
-        // teammate's own share would otherwise keep refreshing our entry).
+        // Forward only parcels currently sensed directly to prevent
+        // mutual feedback loops extending stale observations.
         if (!data.visible) continue;
         if (!data.parcel.carriedBy && data.parcel.reward > 0) parcels.push(data.parcel);
     }
 
     const agents = [];
     for (const [id, a] of beliefs.otherAgents.entries()) {
-        if (id === beliefs.teammate.id || a.shared) continue; // only forward our own observations
+        if (id === beliefs.teammate.id || a.shared) continue; // only forward direct observations
         agents.push({ id, name: a.name, x: a.x, y: a.y, score: a.score, penalty: a.penalty, timestamp: a.timestamp });
     }
 
-    // The PARCELS message doubles as the team's STATUS HEARTBEAT: it always
-    // goes out (even with an empty parcel list) and carries our own position
-    // and cargo. Sensing timestamps only refresh on movement events, so two
-    // stationary teammates would otherwise go mutually "stale" and the
-    // handoff freshness gate would veto every proposal (observed grind-lock).
+    // The PARCELS message doubles as the team status heartbeat, carrying position and cargo.
     if (beliefs.me.x != null) {
         client.emitSay(beliefs.teammate.id, buildMessage(MSG.PARCELS, {
             parcels,
@@ -599,15 +567,13 @@ const shareBeliefs = () => {
     }
     if (agents.length) client.emitSay(beliefs.teammate.id, buildMessage(MSG.AGENTS, { agents }));
 
-    // Opportunistic handoff check rides the same per-sensing throttle
-    // (fire-and-forget: the ask/reply handshake runs in the background).
+    // Opportunistic handoff check triggered alongside sensing
     maybeProposeHandoff();
 };
 
 /**
- * Tell the teammate we are committing to this target (pickup, delivery spot,
- * or wander spot), so they can pick a different one. Works for any predicate
- * type.
+ * Announce commitment to a target intention (pickup, delivery, or wander patrol stop)
+ * so the teammate can select alternative targets.
  */
 const announceClaim = (predicate, score) => {
     if (!config.team.enabled || !hasTeammate()) return;
@@ -617,15 +583,14 @@ const announceClaim = (predicate, score) => {
     }));
 };
 
-/** Tell the teammate we are no longer pursuing this target. */
+/** Notify the teammate that this target is no longer pursued. */
 const releaseClaim = (predicate) => {
     if (!config.team.enabled || !hasTeammate()) return;
     client.emitSay(beliefs.teammate.id, buildMessage(MSG.RELEASE, { key: getIntentionKey(predicate) }));
 };
 
 /**
- * Start coordination: register the message handler and begin announcing our
- * presence. Safe to call once at startup; no-op when team mode is disabled.
+ * Start coordination: register message handlers and begin discovery announcements.
  */
 const initCoordination = () => {
     if (!config.team.enabled) {
