@@ -27,10 +27,10 @@ const config = {
     //    to assign an identity, useful on Windows where empty env vars cannot easily be set).
     // 2. -name=<x> CLI argument — forces a token-less connection so the server mints
     //    a new identity named <x> (preventing multiple agents from reusing the same token).
-    // 3. Fallback: hardcoded development token for single-agent quick start (`npm start`).
+    // 3. Default: empty string (server mints a fresh identity automatically).
     token: process.env.DELIVEROO_TOKEN === 'NEW' || (args.name && process.env.DELIVEROO_TOKEN === undefined)
         ? ''
-        : process.env.DELIVEROO_TOKEN ?? 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjE2NjYyYSIsIm5hbWUiOiJhZ2VudDEiLCJyb2xlIjoidXNlciIsImlhdCI6MTc4MzU4ODkwMX0.s3pshToHp7lWRKDflzpJhZtsQDflSPDmmz5ezb18q5E',
+        : process.env.DELIVEROO_TOKEN ?? '',
 
     // Multi-agent team coordination settings.
     team: {

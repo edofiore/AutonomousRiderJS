@@ -6,6 +6,8 @@ A BDI (Belief–Desire–Intention) autonomous agent for the
 
 *Authors: Edoardo Fiorentino, Leonardo Collizzolli*
 
+> **Project Report**: For a comprehensive overview of the architecture, algorithms, multi-agent coordination, PDDL planning, and benchmark analysis, see [AutonomousRider_Report.pdf](AutonomousRider_Report.pdf).
+
 The agent picks up parcels and delivers them to delivery zones to maximize
 its score. The project covers the three course deliverables:
 
@@ -67,25 +69,44 @@ its score. The project covers the three course deliverables:
 
 - Node.js ≥ 18 (tested on 22) — Windows and Linux both supported
 - A [Deliveroo.js](https://github.com/unitn-ASA/Deliveroo.js) server
-- Optional, for PDDL: a local
-  [planning-as-a-service](https://github.com/AI-Planning/planning-as-a-service)
-  (`docker compose up` in its `server/` folder → `http://localhost:5001`).
-  Without one, the public `solver.planning.domains` is used (3–5 s per solve).
+- Optional, for PDDL: look at [planning-as-a-service](https://github.com/AI-Planning/planning-as-a-service) to run the server locally. Without one, the public `solver.planning.domains` is used (3–5 s per solve).
 
 ## Setup
 
-```bash
-npm install
-cp .env.example .env   # then adjust (solver URL, host, ...)
-```
+1. **Install dependencies**:
+   ```bash
+   npm install
+   ```
 
-Start a Deliveroo server (in the Deliveroo.js repo):
+2. **(Optional) Environment configuration**:
+   The agent runs out of the box with default settings (connecting to `http://localhost:4001` with a fresh server-assigned identity). To customize settings (such as pointing to a different Deliveroo server, setting a persistent token, using a local PDDL solver, or adjusting debug levels), copy `.env.example`:
+   ```bash
+   cp .env.example .env          # Linux / macOS / PowerShell
+   # copy .env.example .env      # Windows cmd
+   ```
+   Then adjust the values in `.env` as needed.
 
-```bash
-cd Deliveroo.js/backend
-PORT=8080 node index.js                          # default map
-# or with a level file:  LEVEL=levels/25c1_1.js PORT=8080 node index.js
-```
+3. **Start the Deliveroo.js server**:
+   You can run the server directly via Node.js or using Docker (from your local [Deliveroo.js](https://github.com/unitn-ASA/Deliveroo.js) repository):
+
+   - **Using Node.js**:
+     ```bash
+     cd Deliveroo.js/backend
+     PORT=4001 node index.js                          # default map
+     # or with a specific level file:
+     LEVEL=levels/25c1_1.js PORT=4001 node index.js
+     ```
+
+   - **Using Docker (`docker-compose.yaml`)**:
+     The [Deliveroo.js](https://github.com/unitn-ASA/Deliveroo.js) repository includes a `docker-compose.yaml` to spin up the server easily:
+     ```bash
+     cd Deliveroo.js
+     docker compose up
+     ```
+     *(Ensure the port exposed by docker-compose matches `DELIVEROO_HOST`, which defaults to `http://localhost:4001`, or adjust the port mapping in `.env` / `docker-compose.yaml`)*.
+
+4. **(Optional) Local PDDL server**:
+   Look at [planning-as-a-service](https://github.com/AI-Planning/planning-as-a-service) to run the PDDL solver locally.
 
 ## Running the agent
 
@@ -106,15 +127,15 @@ precedence: **CLI args > environment variables > `.env` > defaults**.
 
 | Setting | CLI | Env / `.env` | Default |
 | --- | --- | --- | --- |
-| Agent name (fresh identity) | `-name=X` | — | token identity |
-| Auth token | — | `DELIVEROO_TOKEN` (`NEW` = force fresh identity) | built-in token |
-| Server URL | — | `DELIVEROO_HOST` | `http://localhost:8080` |
-| Team mode | `-team=1` | `TEAM` | off |
-| Team secret | — | `TEAM_SECRET` | shared default |
-| PDDL planning | `-pddl=1` | `PDDL` | off |
+| Agent name (fresh identity) | `-name=X` | — | server-assigned identity |
+| Auth token | — | `DELIVEROO_TOKEN` (`NEW` = force fresh identity) | empty (fresh identity) |
+| Server URL | — | `DELIVEROO_HOST` | `http://localhost:4001` |
+| Team mode | `-team=1` | `TEAM` | off (`0`) |
+| Team secret | — | `TEAM_SECRET` | `edoleo-team-secret` |
+| PDDL planning | `-pddl=1` | `PDDL` | off (`0`) |
 | PDDL solver | — | `PAAS_HOST`, `PAAS_PATH` | public solver |
 | Solver timeout / breaker | — | `PDDL_TIMEOUT_MS`, `PDDL_MAX_FAILURES` | 5000 ms / 3 |
-| Verbose logs | — | `DEBUG=1`, `DEBUG_MOVE=1` | off |
+| Verbose logs | — | `DEBUG=1`, `DEBUG_MOVE=1` | off (`0`) |
 
 Note: passing `-name=X` (without an explicit `DELIVEROO_TOKEN`) connects
 token-less and lets the server mint a fresh identity called `X` — so any
@@ -122,7 +143,7 @@ number of agents can be launched without token juggling.
 
 ## Evaluation / benchmark
 
-The repo ships a full testbench (see [benchmark/README.md](benchmark/README.md)):
+The repo ships a full testbench (see [benchmark/README.md](benchmark/README.md)) used to produce the empirical results discussed in [AutonomousRider_Report.pdf](AutonomousRider_Report.pdf):
 every agent emits machine-parsable `METRIC {json}` lines (score, pickups,
 deliveries, failed intentions/plans, PDDL solver latency, map exploration, …),
 a runner plays the `25c*_*` validation maps (PDDL and non-PDDL agents side by

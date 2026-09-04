@@ -7,11 +7,9 @@ node_modules/
 # IDE
 .vscode
 
-# Config file
-src/config/config.js
 
 # Pdf/txt/log file
-*.pdf
+# *.pdf
 *.txt
 *.log
 
