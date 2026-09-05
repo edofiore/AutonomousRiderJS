@@ -68,7 +68,7 @@ its score. The project covers the three course deliverables:
 ## Requirements
 
 - Node.js ≥ 18 (tested on 22) — Windows and Linux both supported
-- A [Deliveroo.js](https://github.com/unitn-ASA/Deliveroo.js) server
+- A [Deliveroo.js](https://github.com/unitn-ASA/Deliveroo.js) server — **must be checked out at commit [`c429f3b28fef3f938c4a306f48ea5adbefbdfef1`](https://github.com/unitn-ASA/Deliveroo.js/tree/c429f3b28fef3f938c4a306f48ea5adbefbdfef1)** (posterior versions are incompatible with this setup, since the Deliveroo.js world has evolved)
 - Optional, for PDDL: look at [planning-as-a-service](https://github.com/AI-Planning/planning-as-a-service) to run the server locally. Without one, the public `solver.planning.domains` is used (3–5 s per solve).
 
 ## Setup
@@ -87,6 +87,15 @@ its score. The project covers the three course deliverables:
    Then adjust the values in `.env` as needed.
 
 3. **Start the Deliveroo.js server**:
+   
+   > **IMPORTANT**
+   >
+   > Deliveroo.js **must** be checked out at commit [`c429f3b28fef3f938c4a306f48ea5adbefbdfef1`](https://github.com/unitn-ASA/Deliveroo.js/tree/c429f3b28fef3f938c4a306f48ea5adbefbdfef1):
+   > ```bash
+   > git checkout c429f3b28fef3f938c4a306f48ea5adbefbdfef1
+   > ```
+   > Posterior versions will not work with our setup, since the Deliveroo.js world has evolved.
+
    You can run the server directly via Node.js or using Docker (from your local [Deliveroo.js](https://github.com/unitn-ASA/Deliveroo.js) repository):
 
    - **Using Node.js**:
@@ -105,7 +114,7 @@ its score. The project covers the three course deliverables:
      ```
      *(Ensure the port exposed by docker-compose matches `DELIVEROO_HOST`, which defaults to `http://localhost:4001`, or adjust the port mapping in `.env` / `docker-compose.yaml`)*.
 
-4. **(Optional) Local PDDL server**:
+5. **(Optional) Local PDDL server**:
    Look at [planning-as-a-service](https://github.com/AI-Planning/planning-as-a-service) to run the PDDL solver locally.
 
 ## Running the agent
