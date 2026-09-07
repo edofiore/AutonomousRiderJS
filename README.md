@@ -140,7 +140,7 @@ precedence: **CLI args > environment variables > `.env` > defaults**.
 | Auth token | — | `DELIVEROO_TOKEN` (`NEW` = force fresh identity) | empty (fresh identity) |
 | Server URL | — | `DELIVEROO_HOST` | `http://localhost:4001` |
 | Team mode | `-team=1` | `TEAM` | off (`0`) |
-| Team secret | `-team_secret=S` | `TEAM_SECRET` | `edoleo-team-secret` |
+| Team secret | `-team_secret=S ` | `TEAM_SECRET` | `edoleo-team-secret` |
 | PDDL planning | `-pddl=1` | `PDDL` | off (`0`) |
 | PDDL solver | — | `PAAS_HOST`, `PAAS_PATH` | public solver |
 | Solver timeout / breaker | — | `PDDL_TIMEOUT_MS`, `PDDL_MAX_FAILURES` | 5000 ms / 3 |
