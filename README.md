@@ -6,7 +6,21 @@ A BDI (Belief–Desire–Intention) autonomous agent for the
 
 *Authors: Edoardo Fiorentino, Leonardo Collizzolli*
 
-> **Project Report**: For a comprehensive overview of the architecture, algorithms, multi-agent coordination, PDDL planning, and benchmark analysis, see [AutonomousRider_Report.pdf](AutonomousRider_Report.pdf).
+---
+
+- [Project description](#project-descritpion)
+- [How it works](#how-it-works)
+- [Requirements](#requirements)
+- [Setup](#setup)
+- [Running the agent](#running-the-agent)
+- [Evaluation](#evaluation--benchmark)
+- [Project Layout](#project-layout)
+
+---
+
+## Project descritpion
+
+<img src="assets/deliveroo.gif"/>
 
 The agent picks up parcels and delivers them to delivery zones to maximize
 its score. The project covers the three course deliverables:
@@ -18,6 +32,8 @@ its score. The project covers the three course deliverables:
    opportunistic parcel handoffs.
 3. **PDDL planning** — pickup/delivery intentions can be solved by a real
    PDDL planner (planning-as-a-service) instead of the hand-written plans.
+
+> **Project Report**: For a comprehensive overview of the architecture, algorithms, multi-agent coordination, PDDL planning, and benchmark analysis, see [AutonomousRider_Report.pdf](AutonomousRider_Report.pdf).
 
 ---
 
@@ -129,6 +145,14 @@ node src/autonomousRider.js -name=Rider -pddl=1
 # a team of two (run in two terminals)
 npm run agent1        # = node src/autonomousRider.js -name=A1 -team=1
 npm run agent2        # = node src/autonomousRider.js -name=A2 -team=1
+
+# two competing teams (2 vs 2 match, run each in a separate terminal)
+# Team 1 (A1 & A2, default secret: edoleo-team-secret)
+npm run agent1
+npm run agent2
+# Team 2 (E1 & E2, secret: enemy)
+npm run enemy1        # = node src/autonomousRider.js -name=E1 -team=2 -team_secret=enemy
+npm run enemy2        # = node src/autonomousRider.js -name=E2 -team=2 -team_secret=enemy
 ```
 
 CLI args work identically in Bash, PowerShell and cmd. Configuration
@@ -149,6 +173,12 @@ precedence: **CLI args > environment variables > `.env` > defaults**.
 Note: passing `-name=X` (without an explicit `DELIVEROO_TOKEN`) connects
 token-less and lets the server mint a fresh identity called `X` — so any
 number of agents can be launched without token juggling.
+
+When pitting multiple teams against each other (e.g. 2 vs 2), teammates find
+and coordinate with each other via `-team_secret`. Agents with different secrets
+ignore each other's internal coordination messages (claims, partition, handoffs)
+while treating members of rival teams as standard competitors on the field.
+
 
 ## Evaluation / benchmark
 

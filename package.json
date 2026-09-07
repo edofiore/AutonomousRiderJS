@@ -9,6 +9,8 @@
     "start": "node src/autonomousRider.js",
     "agent1": "node src/autonomousRider.js -name=A1 -team=1",
     "agent2": "node src/autonomousRider.js -name=A2 -team=1",
+    "enemy1": "node src/autonomousRider.js -name=E1 -team=1 -team_secret=enemy",
+    "enemy2": "node src/autonomousRider.js -name=E2 -team=1 -team_secret=enemy",
     "team": "node src/autonomousRider.js -team=1",
     "bench": "node benchmark/run-benchmark.js",
     "bench:parse": "node benchmark/parse-logs.js",
