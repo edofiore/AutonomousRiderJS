@@ -136,12 +136,12 @@ precedence: **CLI args > environment variables > `.env` > defaults**.
 
 | Setting | CLI | Env / `.env` | Default |
 | --- | --- | --- | --- |
-| Agent name (fresh identity) | `-name=X` | — | server-assigned identity |
+| Agent name (fresh identity) | <nobr>`-name=X`</nobr> | — | server-assigned identity |
 | Auth token | — | `DELIVEROO_TOKEN` (`NEW` = force fresh identity) | empty (fresh identity) |
 | Server URL | — | `DELIVEROO_HOST` | `http://localhost:4001` |
-| Team mode | `-team=1` | `TEAM` | off (`0`) |
-| Team secret | `-team_secret=S ` | `TEAM_SECRET` | `edoleo-team-secret` |
-| PDDL planning | `-pddl=1` | `PDDL` | off (`0`) |
+| Team mode | <nobr>`-team=1`</nobr> | `TEAM` | off (`0`) |
+| Team secret | <nobr>`-team_secret=S`</nobr> | `TEAM_SECRET` | `edoleo-team-secret` |
+| PDDL planning | <nobr>`-pddl=1`</nobr> | `PDDL` | off (`0`) |
 | PDDL solver | — | `PAAS_HOST`, `PAAS_PATH` | public solver |
 | Solver timeout / breaker | — | `PDDL_TIMEOUT_MS`, `PDDL_MAX_FAILURES` | 5000 ms / 3 |
 | Verbose logs | — | `DEBUG=1`, `DEBUG_MOVE=1` | off (`0`) |
