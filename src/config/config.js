@@ -4,7 +4,7 @@ import { default as argsParser } from "args-parser";
  * Agent Runtime Configuration.
  *
  * Configuration is resolved hierarchically:
- * 1. Command-line arguments (e.g., `node src/autonomousRider.js -name=A1 -team=1 -pddl=0`)
+ * 1. Command-line arguments (e.g., `node src/autonomousRider.js -name=A1 -team=1 -team_secret=mysecret -pddl=0`)
  * 2. Environment variables (defined in process.env or loaded via .env)
  * 3. Default fallback values
  *
@@ -40,7 +40,7 @@ const config = {
 
         // Shared secret used by teammates to authenticate each other over the
         // broadcast Deliveroo message bus. Both agents must share the same secret.
-        secret: process.env.TEAM_SECRET ?? 'edoleo-team-secret',
+        secret: args.team_secret ?? process.env.TEAM_SECRET ?? 'edoleo-team-secret',
     },
 
     // Online PDDL Planner configuration.

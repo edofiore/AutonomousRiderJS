@@ -66,7 +66,7 @@ agent, `manifest.json` on completion).
 Both scripts are plain Node (no shell tricks) and run identically on
 **Windows and Linux**. For manually launched agents, env-var prefixes like
 `TEAM=1 node ...` are Bash-only, so the agent also accepts cross-platform CLI
-args: `node src/autonomousRider.js -name=A1 -team=1 -pddl=0`.
+args: `node src/autonomousRider.js -name=A1 -team=1 -team_secret=mysecret -pddl=0`.
 
 ## PDDL solver
 
